@@ -1,0 +1,38 @@
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Database
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.29.0
+alembic==1.13.2
+
+# Config + validation
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# File handling
+httpx==0.27.2
+aiofiles==24.1.0
+
+# Background jobs
+arq==0.26.1
+
+# Vector DB
+qdrant-client==1.11.1
+
+# LLM + agents (unpinned — stubs only in Phase 2, re-pin when implemented in Phase 3)
+langchain
+langchain-anthropic
+langchain-openai
+langgraph
+anthropic
+openai
+
+# Utilities
+python-dotenv==1.0.1
