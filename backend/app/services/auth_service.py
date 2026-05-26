@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -22,7 +22,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_access_token(data: dict) -> str:
     """Sign and return a JWT with an exp claim appended to the given payload."""
     payload = data.copy()
-    payload["exp"] = datetime.utcnow() + timedelta(days=settings.access_token_expire_days)
+    payload["exp"] = datetime.now(UTC) + timedelta(days=settings.access_token_expire_days)
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 

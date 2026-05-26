@@ -2,11 +2,14 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+
+load_dotenv()  # populate os.environ from .env before any lookups
 
 # Import all models so autogenerate detects every table
 from app.models import *  # noqa: F401, F403
