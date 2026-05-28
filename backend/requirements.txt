@@ -21,6 +21,13 @@ python-multipart==0.0.9
 httpx==0.27.2
 aiofiles==24.1.0
 
+# CV parsing
+unstructured[pdf,docx]
+boto3
+
+# Text splitting
+langchain-text-splitters
+
 # Background jobs
 arq==0.26.1
 
