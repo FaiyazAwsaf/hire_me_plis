@@ -1,7 +1,7 @@
 def section_classifier_prompt(text: str) -> str:
     return f"""You are a CV/resume parser. Given the following text extracted from a CV, \
 classify each paragraph into one of these sections:
-experience, education, skills, projects, certifications, personal
+experience, education, skills, projects, certifications, personal, summary
 
 Return a JSON array where each item has:
 - "section": one of the above labels

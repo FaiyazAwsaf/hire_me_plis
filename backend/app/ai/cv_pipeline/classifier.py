@@ -8,7 +8,7 @@ from app.core.llm_client import LIGHT_MODEL
 
 @dataclass
 class ClassifiedBlock:
-    section: str  # experience | education | skills | projects | certifications | personal
+    section: str  # experience | education | skills | projects | certifications | personal | summary
     text: str
 
 
