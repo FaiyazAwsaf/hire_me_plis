@@ -27,6 +27,7 @@ boto3
 
 # Text splitting
 langchain-text-splitters
+tiktoken
 
 # Background jobs
 arq==0.26.1
