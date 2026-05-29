@@ -13,14 +13,16 @@ from app.routers.tracker import router as tracker_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Deferred imports avoid circular import: arq → app.config at module load time
     from arq import create_pool
     from arq.connections import RedisSettings
     from app.config import settings
 
+    # arq_pool is stored on app.state so get_arq_pool() dependency can retrieve it per-request
     app.state.arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
     await ensure_collection()
     yield
-    await app.state.arq_pool.aclose()
+    await app.state.arq_pool.aclose()  # aclose() is the async variant of close()
 
 
 app = FastAPI(title="Hire Me Plis API", version="0.1.0", lifespan=lifespan)

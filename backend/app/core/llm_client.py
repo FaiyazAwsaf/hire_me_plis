@@ -1,7 +1,9 @@
 from openai import AsyncOpenAI
 from app.config import settings
 
-# Change model constants here to affect every call site
+# ChatLLM is an OpenAI-compatible proxy — setting base_url lets us use the openai SDK
+# for both Claude and Gemini without separate anthropic/google clients.
+# Change model constants here to affect every call site.
 HEAVY_MODEL = "claude-sonnet-4-6"   # Claude — explanations, cover letters, fit reasoning
 LIGHT_MODEL = "gemini-flash"         # Gemini Flash — classification, extraction (fast + cheap)
 
