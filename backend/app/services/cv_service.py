@@ -47,7 +47,6 @@ async def upload_cv(
         ),
     )
 
-    # Persist the upload record
     cv = CVVersion(
         id=cv_id,
         user_id=user_id,
@@ -61,6 +60,7 @@ async def upload_cv(
     # Enqueue the background pipeline — args must match process_cv signature
     await arq_pool.enqueue_job("process_cv", str(cv_id), str(user_id), r2_key, ext)
 
+    # .value converts the enum to a plain string — Pydantic schema expects str, not CVStatus
     return CVUploadResponse(cv_id=cv_id, status=CVStatus.pending.value)
 
 

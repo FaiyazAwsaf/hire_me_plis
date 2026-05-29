@@ -18,6 +18,8 @@ async def parse_file(r2_key: str, file_type: str) -> list[str]:
         file_bytes = obj["Body"].read()
         file_obj = io.BytesIO(file_bytes)
 
+        # Deferred imports: unstructured has a slow module-level load; importing inside
+        # the thread keeps startup time fast and load happens only when a CV is processed
         if file_type == "pdf":
             from unstructured.partition.pdf import partition_pdf
             elements = partition_pdf(file=file_obj)

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from app.ai.cv_pipeline.classifier import classify_sections
 from app.ai.cv_pipeline.chunker import chunk_sections
@@ -34,7 +34,7 @@ async def run_cv_pipeline(
         classified = await classify_sections(blocks)
         chunks = chunk_sections(classified)
 
-        # Wipe existing user vectors before inserting new ones — always a clean slate
+        # Delete before embedding — ensures no orphaned chunks from previous runs remain
         await delete_by_user(user_id)
 
         await update_status_fn(cv_version_id, "embedding")
