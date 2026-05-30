@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_days: int = 7
 
+    # ChatLLM (OpenAI-compatible proxy for Claude + Gemini)
+    chatllm_api_key: str = ""
+    chatllm_base_url: str = ""  # e.g. https://api.chatllm.com/v1
+
     # LLM
     anthropic_api_key: str = ""
     openai_api_key: str = ""
