@@ -18,6 +18,8 @@ async def upsert_chunks(points: list[CVChunkPoint]) -> None:
                 "chunk_index": p.chunk_index,
                 "text": p.text,
                 "token_count": p.token_count,
+                "role_title": p.role_title,
+                "experience_years": p.experience_years,
             },
         )
         for p in points

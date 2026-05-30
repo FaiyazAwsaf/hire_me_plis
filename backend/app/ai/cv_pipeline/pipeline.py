@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from app.ai.cv_pipeline.classifier import classify_sections
 from app.ai.cv_pipeline.chunker import chunk_sections
 from app.ai.cv_pipeline.embedder import embed_and_upsert
+from app.ai.cv_pipeline.meta_extractor import extract_cv_meta
 from app.ai.cv_pipeline.parser import parse_file
 from app.ai.vector_store.delete import delete_by_user
 
@@ -34,12 +35,15 @@ async def run_cv_pipeline(
         classified = await classify_sections(blocks)
         chunks = chunk_sections(classified)
 
+        # Extract role + experience metadata once; stamped onto every Qdrant point below
+        cv_meta = await extract_cv_meta(classified)
+
         # Delete before embedding — ensures no orphaned chunks from previous runs remain
         await delete_by_user(user_id)
 
         await update_status_fn(cv_version_id, "embedding")
 
-        count = await embed_and_upsert(chunks, user_id, cv_version_id)
+        count = await embed_and_upsert(chunks, user_id, cv_version_id, cv_meta)
 
         await update_status_fn(cv_version_id, "done")
         return PipelineResult(success=True, chunk_count=count)
