@@ -11,9 +11,7 @@ async def retrieve(
 
     This is the mock boundary in tests — mock embed_text and search_chunks here
     rather than hitting OpenAI or Qdrant.
-    
-    # TODO: add cross-encoder reranking here when retrieval quality becomes a bottleneck
-    
     """
+    # TODO: add cross-encoder reranking here when retrieval quality becomes a bottleneck
     vector = await embed_text(query)
     return await search_chunks(vector, user_id, top_k)

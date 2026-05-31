@@ -26,8 +26,9 @@ async def redis_append(
     """
     key = f"session:{session_id}:messages"
     msg = json.dumps({"role": role, "content": content, "created_at": created_at_iso})
-    await redis_pool.rpush(key, msg)
-    # -_MAX_MESSAGES keeps only the newest 20 messages, atomically
-    await redis_pool.ltrim(key, -_MAX_MESSAGES, -1)
-    # Reset 2-hour expiry on every write so active sessions never expire mid-conversation
-    await redis_pool.expire(key, _SESSION_TTL_SECONDS)
+    # Pipeline batches all three commands into one round-trip instead of three
+    async with redis_pool.pipeline(transaction=False) as pipe:
+        pipe.rpush(key, msg)
+        pipe.ltrim(key, -_MAX_MESSAGES, -1)
+        pipe.expire(key, _SESSION_TTL_SECONDS)
+        await pipe.execute()

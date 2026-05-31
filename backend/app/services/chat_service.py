@@ -10,10 +10,8 @@ from app.ai.llm.stream import stream_chat
 from app.ai.rag.context import build_context
 from app.ai.rag.memory import redis_append, redis_load_history
 from app.ai.rag.retriever import retrieve
+from app.core.llm_client import HEAVY_MODEL
 from app.models.chat_message import ChatMessage
-
-# Claude Sonnet 4.6 via ChatLLM OpenAI-compatible proxy
-_HEAVY_MODEL = "claude-sonnet-4-6"
 
 
 async def save_message(
@@ -113,7 +111,7 @@ async def handle_chat(
 
     # 5. Stream tokens, accumulate the full response for saving
     assembled: list[str] = []
-    async for token in stream_chat(messages, _HEAVY_MODEL):
+    async for token in stream_chat(messages, HEAVY_MODEL):
         assembled.append(token)
         yield token
 
