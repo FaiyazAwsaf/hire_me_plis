@@ -24,7 +24,7 @@ async def score_job(body: FitScoreRequest, current_user: _User, db: _DB):
     return await job_service.fit_score_job(body.jd_text, current_user.id, db)
 
 
-@router.post("/search", response_model=JobSearchResponse)
+@router.post("/search")
 async def search_jobs(body: JobSearchRequest, current_user: _User, db: _DB):
     # Day 5 — wired up when the Job Hunter Agent is built
     return {"status": "not_implemented"}
