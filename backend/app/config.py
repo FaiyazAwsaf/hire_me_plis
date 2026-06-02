@@ -35,8 +35,6 @@ class Settings(BaseSettings):
     r2_bucket_name: str = ""
 
     # Job APIs
-    adzuna_app_id: str = ""
-    adzuna_app_key: str = ""
     jsearch_rapidapi_key: str = ""
 
 
