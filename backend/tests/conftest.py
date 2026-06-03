@@ -9,6 +9,14 @@ os.environ.setdefault(
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests-only-32chars!!")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
 os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
+# R2 account ID must be non-empty — boto3 validates the endpoint URL at client creation time
+os.environ.setdefault("R2_ACCOUNT_ID", "test-account-id")
+os.environ.setdefault("R2_ACCESS_KEY_ID", "test-key-id")
+os.environ.setdefault("R2_SECRET_ACCESS_KEY", "test-secret-key")
+# ChatLLM base_url must be a valid URL — openai SDK validates it at client creation time
+os.environ.setdefault("CHATLLM_BASE_URL", "https://test.chatllm.invalid/v1")
+os.environ.setdefault("CHATLLM_API_KEY", "test-chatllm-key")
+os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 
 # Unix socket + matching OS username → peer auth, no password required.
 # One-time setup: sudo -u postgres createuser --superuser --createdb $USER
@@ -64,8 +72,17 @@ async def _drop_schema() -> None:
 
 @pytest.fixture(scope="session", autouse=True)
 def db_setup():
-    """Create tables once before the session; drop them after."""
-    asyncio.run(_create_schema())
+    """Create tables once before the session; drop them after.
+
+    If PostgreSQL is unavailable (e.g. pure unit test run), the setup is
+    skipped gracefully — DB-dependent fixtures (db, client) will error only
+    for tests that actually request them.
+    """
+    try:
+        asyncio.run(_create_schema())
+    except Exception:
+        yield  # no DB available; unit tests that don't use 'db' can still run
+        return
     yield
     asyncio.run(_drop_schema())
 

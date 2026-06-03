@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
@@ -9,8 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.vector_store.delete import delete_by_user
 from app.config import settings
 from app.core.r2_client import r2
-from app.models.cv import CVStatus, CVVersion
-from app.schemas.cv import CVMetaResponse, CVStatusResponse, CVUploadResponse
+from app.models.cv import CVProfile as CVProfileORM, CVStatus, CVVersion
+from app.schemas.cv import (
+    CVExportResponse,
+    CVMetaResponse,
+    CVProfile,
+    CVProfilePatch,
+    CVProfileWrite,
+    CVStatusResponse,
+    CVUploadResponse,
+)
 
 _ALLOWED_EXTENSIONS = {"pdf", "docx"}
 _MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -115,3 +124,95 @@ async def _get_latest_cv(user_id: uuid.UUID, db: AsyncSession) -> CVVersion:
     if cv is None:
         raise HTTPException(status_code=404, detail="No CV found for this user")
     return cv
+
+
+async def _get_profile_row(user_id: uuid.UUID, db: AsyncSession) -> CVProfileORM:
+    result = await db.execute(
+        select(CVProfileORM).where(CVProfileORM.user_id == user_id)
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No CV profile found")
+    return row
+
+
+async def get_profile(user_id: uuid.UUID, db: AsyncSession) -> CVProfile:
+    row = await _get_profile_row(user_id, db)
+    return CVProfile(**row.profile, updated_at=row.updated_at)
+
+
+async def put_profile(
+    user_id: uuid.UUID,
+    payload: CVProfileWrite,
+    db: AsyncSession,
+    arq_pool,
+) -> CVProfile:
+    """Full replace — creates the profile row if it doesn't exist yet (upsert)."""
+    result = await db.execute(
+        select(CVProfileORM).where(CVProfileORM.user_id == user_id)
+    )
+    row = result.scalar_one_or_none()
+    now = datetime.now(timezone.utc)
+    # mode="json" serialises UUIDs to strings — correct for JSONB storage
+    profile_data = payload.model_dump(mode="json")
+
+    if row is None:
+        row = CVProfileORM(user_id=user_id, profile=profile_data, updated_at=now)
+        db.add(row)
+    else:
+        # Reassign (not mutate in-place) so SQLAlchemy detects the JSONB change
+        row.profile = profile_data
+        row.updated_at = now
+
+    await db.commit()
+    await arq_pool.enqueue_job("re_embed_profile", str(user_id))
+    return CVProfile(**profile_data, updated_at=now)
+
+
+async def patch_profile(
+    user_id: uuid.UUID,
+    patch: CVProfilePatch,
+    db: AsyncSession,
+    arq_pool,
+) -> CVProfile:
+    """Partial update — personal fields merge individually; lists replace wholesale."""
+    row = await _get_profile_row(user_id, db)
+    stored: dict = dict(row.profile)
+
+    if patch.personal is not None:
+        existing_personal = dict(stored.get("personal", {}))
+        # Only overwrite fields that were explicitly sent (exclude_none skips omitted fields)
+        existing_personal.update(patch.personal.model_dump(exclude_none=True))
+        stored["personal"] = existing_personal
+
+    for field in ("experience", "education", "projects", "certifications"):
+        val = getattr(patch, field)
+        if val is not None:
+            stored[field] = [item.model_dump(mode="json") for item in val]
+
+    if patch.skills is not None:
+        stored["skills"] = patch.skills
+
+    now = datetime.now(timezone.utc)
+    row.profile = stored  # reassign triggers SQLAlchemy JSONB dirty-check
+    row.updated_at = now
+    await db.commit()
+    await arq_pool.enqueue_job("re_embed_profile", str(user_id))
+    return CVProfile(**stored, updated_at=now)
+
+
+async def export_cv(user_id: uuid.UUID, db: AsyncSession) -> CVExportResponse:
+    """Generate a 1-hour presigned GET URL for the user's latest CV file in R2."""
+    cv = await _get_latest_cv(user_id, db)
+    loop = asyncio.get_running_loop()
+    # boto3 is synchronous — must run in executor to avoid blocking the event loop
+    url: str = await loop.run_in_executor(
+        None,
+        lambda: r2.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.r2_bucket_name, "Key": cv.r2_key},
+            ExpiresIn=3600,
+        ),
+    )
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    return CVExportResponse(download_url=url, expires_at=expires_at)

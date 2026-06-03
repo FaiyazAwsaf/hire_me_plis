@@ -4,3 +4,4 @@ from app.models.application import Application
 from app.models.goal import Goal
 from app.models.calendar_event import CalendarEvent
 from app.models.nudge import Nudge
+from app.models.chat_message import ChatMessage
