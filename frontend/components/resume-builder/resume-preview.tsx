@@ -14,7 +14,6 @@ interface ResumePreviewProps {
  * Displays a saved preview snapshot of the resume
  */
 function ResumePreviewComponent({ resume, templateId = "modern" }: ResumePreviewProps) {
-  // Template styling
   const templateStyles = {
     modern: {
       headerBorder: "border-b-2 border-blue-600",
@@ -53,51 +52,64 @@ function ResumePreviewComponent({ resume, templateId = "modern" }: ResumePreview
         <div className="p-8 max-w-4xl mx-auto">
           {/* Header Section */}
           <div className={`mb-6 pb-4 ${styles.headerBorder}`}>
-            <h1 className={`${styles.headerName} mb-1`}>
-              {resume.personalInfo.fullName || "Your Name"}
-            </h1>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-              {resume.personalInfo.email && (
-                <span>{resume.personalInfo.email}</span>
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              {resume.personalInfo.avatar && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={resume.personalInfo.avatar}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-neutral-200 shrink-0"
+                />
               )}
-              {resume.personalInfo.phone && (
-                <span>{resume.personalInfo.phone}</span>
-              )}
-              {resume.personalInfo.address && (
-                <span>{resume.personalInfo.address}</span>
-              )}
-            </div>
-            <div className={`flex flex-wrap gap-4 text-sm ${styles.linkColor} mt-2`}>
-              {resume.personalInfo.linkedin && (
-                <a
-                  href={resume.personalInfo.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  LinkedIn
-                </a>
-              )}
-              {resume.personalInfo.github && (
-                <a
-                  href={resume.personalInfo.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  GitHub
-                </a>
-              )}
-              {resume.personalInfo.portfolio && (
-                <a
-                  href={resume.personalInfo.portfolio}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                >
-                  Portfolio
-                </a>
-              )}
+              <div>
+                <h1 className={`${styles.headerName} mb-1`}>
+                  {resume.personalInfo.fullName || "Your Name"}
+                </h1>
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                  {resume.personalInfo.email && (
+                    <span>{resume.personalInfo.email}</span>
+                  )}
+                  {resume.personalInfo.phone && (
+                    <span>{resume.personalInfo.phone}</span>
+                  )}
+                  {resume.personalInfo.address && (
+                    <span>{resume.personalInfo.address}</span>
+                  )}
+                </div>
+                <div className={`flex flex-wrap gap-4 text-sm ${styles.linkColor} mt-2`}>
+                  {resume.personalInfo.linkedin && (
+                    <a
+                      href={resume.personalInfo.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      LinkedIn
+                    </a>
+                  )}
+                  {resume.personalInfo.github && (
+                    <a
+                      href={resume.personalInfo.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      GitHub
+                    </a>
+                  )}
+                  {resume.personalInfo.portfolio && (
+                    <a
+                      href={resume.personalInfo.portfolio}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      Portfolio
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

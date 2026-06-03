@@ -71,7 +71,6 @@ export default function ResumeBuilderPage() {
   const [previewResume, setPreviewResume] = useState(currentResume);
 
   // Keep the preview snapshot in sync with the store's current resume.
-  // This ensures any section that calls `updateCurrentResume` will update the preview.
   useEffect(() => {
     setPreviewResume(currentResume);
   }, [currentResume]);
@@ -109,22 +108,19 @@ export default function ResumeBuilderPage() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Check if resume already exists
       const existingIndex = savedResumes.findIndex(
         (r) => r.id === currentResume.id
       );
 
       if (existingIndex >= 0) {
-        // Update existing
         const updated = [...savedResumes];
         updated[existingIndex] = updatedResume;
         setSavedResumes(updated);
       } else {
-        // Add new
         addSavedResume(updatedResume);
       }
 
-        syncPreviewResume(updatedResume);
+      syncPreviewResume(updatedResume);
       alert("Resume saved successfully!");
     } catch (error) {
       console.error("Error saving resume:", error);
@@ -176,23 +172,10 @@ export default function ResumeBuilderPage() {
   };
 
   const handleSavePersonalInfo = (data: Resume["personalInfo"]) => {
-    const updatedResume = {
-      ...currentResume,
-      personalInfo: data,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Update the store; preview will sync via effect above.
     updateCurrentResume({ personalInfo: data });
   };
 
   const handleDeletePersonalInfo = () => {
-    const clearedResume = {
-      ...currentResume,
-      personalInfo: emptyPersonalInfo,
-      updatedAt: new Date().toISOString(),
-    };
-
     updateCurrentResume({ personalInfo: emptyPersonalInfo });
   };
 
@@ -277,9 +260,9 @@ export default function ResumeBuilderPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
             {/* Left Side: Form Editor */}
             <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden flex flex-col">
-              <Tabs defaultValue="personal" className="flex-1 flex flex-col">
+              <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden">
                 {/* Tabs Header */}
-                <div className="border-b border-neutral-200 overflow-x-auto">
+                <div className="border-b border-neutral-200 overflow-x-auto shrink-0">
                   <TabsList className="w-full justify-start rounded-none bg-neutral-50 p-0 h-auto">
                     <TabsTrigger
                       value="personal"
@@ -320,67 +303,89 @@ export default function ResumeBuilderPage() {
                   </TabsList>
                 </div>
 
-                {/* Tabs Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  <TabsContent value="personal" className="space-y-4 mt-0">
+                {/* ── Personal Tab ── owns its own scroll via PersonalInfoForm */}
+                <TabsContent
+                  value="personal"
+                  className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden"
+                >
+                  <div className="px-6 pt-6 pb-4 shrink-0">
                     <TemplateSelector
                       selectedTemplate={selectedTemplate}
                       onSelectTemplate={setSelectedTemplate}
                     />
-                    <Separator />
+                    <Separator className="mt-4" />
+                  </div>
+                  {/* PersonalInfoForm fills remaining height and owns its scroll */}
+                  <div className="flex-1 overflow-hidden flex flex-col">
                     <PersonalInfoForm
                       data={currentResume.personalInfo}
                       onSave={handleSavePersonalInfo}
                       onDelete={handleDeletePersonalInfo}
                     />
-                  </TabsContent>
+                  </div>
+                </TabsContent>
 
-                  <TabsContent value="experience" className="mt-0">
-                    <ExperienceForm
-                      experiences={currentResume.experience}
-                      onUpdate={(data) =>
-                        updateCurrentResume({ experience: data })
-                      }
-                    />
-                  </TabsContent>
+                {/* ── All other tabs: keep their own scrollable wrapper ── */}
+                <TabsContent
+                  value="experience"
+                  className="flex-1 overflow-y-auto p-6 mt-0 data-[state=inactive]:hidden"
+                >
+                  <ExperienceForm
+                    experiences={currentResume.experience}
+                    onUpdate={(data) =>
+                      updateCurrentResume({ experience: data })
+                    }
+                  />
+                </TabsContent>
 
-                  <TabsContent value="education" className="mt-0">
-                    <EducationForm
-                      educations={currentResume.education}
-                      onUpdate={(data) =>
-                        updateCurrentResume({ education: data })
-                      }
-                    />
-                  </TabsContent>
+                <TabsContent
+                  value="education"
+                  className="flex-1 overflow-y-auto p-6 mt-0 data-[state=inactive]:hidden"
+                >
+                  <EducationForm
+                    educations={currentResume.education}
+                    onUpdate={(data) =>
+                      updateCurrentResume({ education: data })
+                    }
+                  />
+                </TabsContent>
 
-                  <TabsContent value="skills" className="mt-0">
-                    <SkillsForm
-                      skills={currentResume.skills}
-                      onUpdate={(data) => updateCurrentResume({ skills: data })}
-                    />
-                  </TabsContent>
+                <TabsContent
+                  value="skills"
+                  className="flex-1 overflow-y-auto p-6 mt-0 data-[state=inactive]:hidden"
+                >
+                  <SkillsForm
+                    skills={currentResume.skills}
+                    onUpdate={(data) => updateCurrentResume({ skills: data })}
+                  />
+                </TabsContent>
 
-                  <TabsContent value="projects" className="mt-0">
-                    <ProjectsForm
-                      projects={currentResume.projects}
-                      onUpdate={(data) =>
-                        updateCurrentResume({ projects: data })
-                      }
-                    />
-                  </TabsContent>
+                <TabsContent
+                  value="projects"
+                  className="flex-1 overflow-y-auto p-6 mt-0 data-[state=inactive]:hidden"
+                >
+                  <ProjectsForm
+                    projects={currentResume.projects}
+                    onUpdate={(data) =>
+                      updateCurrentResume({ projects: data })
+                    }
+                  />
+                </TabsContent>
 
-                  <TabsContent value="certifications" className="mt-0">
-                    <CertificationsForm
-                      certifications={currentResume.certifications}
-                      onUpdate={(data) =>
-                        updateCurrentResume({ certifications: data })
-                      }
-                    />
-                  </TabsContent>
-                </div>
+                <TabsContent
+                  value="certifications"
+                  className="flex-1 overflow-y-auto p-6 mt-0 data-[state=inactive]:hidden"
+                >
+                  <CertificationsForm
+                    certifications={currentResume.certifications}
+                    onUpdate={(data) =>
+                      updateCurrentResume({ certifications: data })
+                    }
+                  />
+                </TabsContent>
 
                 {/* Footer with Export Options */}
-                <div className="border-t border-neutral-200 p-6 bg-neutral-50">
+                <div className="border-t border-neutral-200 p-6 bg-neutral-50 shrink-0">
                   <ExportOptions resume={currentResume} />
                 </div>
               </Tabs>

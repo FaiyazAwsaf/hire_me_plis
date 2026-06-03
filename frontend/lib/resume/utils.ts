@@ -20,7 +20,7 @@ export function formatDate(dateString: string): string {
 
 export function calculateYearsExperience(experiences: any[]): number {
   if (!experiences.length) return 0;
-  
+
   let totalMonths = 0;
   experiences.forEach((exp) => {
     try {
@@ -58,7 +58,7 @@ export function downloadJSON(resume: Resume): void {
  */
 export function generateResumeHTML(resume: Resume, templateId?: string): string {
   const template = templateId || resume.templateId;
-  
+
   if (template === "classic") {
     return generateClassicTemplate(resume);
   } else if (template === "minimal") {
@@ -83,14 +83,14 @@ function generateModernTemplate(resume: Resume): string {
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       line-height: 1.6;
       color: #333;
       background: #f5f5f5;
     }
-    
+
     .container {
       max-width: 8.5in;
       height: 11in;
@@ -99,19 +99,35 @@ function generateModernTemplate(resume: Resume): string {
       background: white;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    
+
     header {
       border-bottom: 3px solid #2563eb;
       padding-bottom: 20px;
       margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
-    
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e5e7eb;
+      flex-shrink: 0;
+    }
+
+    .header-info {
+      flex: 1;
+    }
+
     h1 {
       font-size: 28px;
       color: #1e40af;
       margin-bottom: 5px;
     }
-    
+
     .contact-info {
       font-size: 12px;
       display: flex;
@@ -119,12 +135,12 @@ function generateModernTemplate(resume: Resume): string {
       flex-wrap: wrap;
       color: #666;
     }
-    
+
     .contact-info a {
       color: #2563eb;
       text-decoration: none;
     }
-    
+
     h2 {
       font-size: 14px;
       font-weight: bold;
@@ -135,55 +151,76 @@ function generateModernTemplate(resume: Resume): string {
       margin-top: 15px;
       margin-bottom: 10px;
     }
-    
+
     .section {
       margin-bottom: 15px;
     }
-    
+
     .entry {
       margin-bottom: 12px;
     }
-    
+
     .entry-header {
       display: flex;
       justify-content: space-between;
       margin-bottom: 3px;
     }
-    
+
     .entry-title {
       font-weight: bold;
       font-size: 13px;
     }
-    
+
+    .entry-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .entry-title a:hover {
+      text-decoration: underline;
+    }
+
     .entry-subtitle {
       font-style: italic;
       color: #666;
       font-size: 12px;
     }
-    
+
     .entry-dates {
       font-size: 12px;
       color: #666;
     }
-    
+
     .entry-description {
       font-size: 12px;
       color: #555;
       line-height: 1.5;
     }
-    
+
+    .credential-link {
+      font-size: 11px;
+      color: #2563eb;
+      text-decoration: none;
+      margin-top: 2px;
+      display: inline-block;
+    }
+
+    .credential-link:hover {
+      text-decoration: underline;
+    }
+
     .summary {
       font-size: 12px;
       line-height: 1.5;
       margin-bottom: 10px;
     }
-    
+
     .skills-list {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
-    
+
     .skill-tag {
       background: #e0e7ff;
       color: #3730a3;
@@ -197,23 +234,26 @@ function generateModernTemplate(resume: Resume): string {
 <body>
   <div class="container">
     <header>
-      <h1>${personalInfo.fullName}</h1>
-      <div class="contact-info">
-        ${personalInfo.email ? `<span>${personalInfo.email}</span>` : ""}
-        ${personalInfo.phone ? `<span>${personalInfo.phone}</span>` : ""}
-        ${personalInfo.address ? `<span>${personalInfo.address}</span>` : ""}
-        ${personalInfo.linkedin ? `<span><a href="${personalInfo.linkedin}">LinkedIn</a></span>` : ""}
-        ${personalInfo.github ? `<span><a href="${personalInfo.github}">GitHub</a></span>` : ""}
+      ${personalInfo.avatar ? `<img class="avatar" src="${personalInfo.avatar}" alt="Profile" />` : ""}
+      <div class="header-info">
+        <h1>${personalInfo.fullName}</h1>
+        <div class="contact-info">
+          ${personalInfo.email ? `<span>${personalInfo.email}</span>` : ""}
+          ${personalInfo.phone ? `<span>${personalInfo.phone}</span>` : ""}
+          ${personalInfo.address ? `<span>${personalInfo.address}</span>` : ""}
+          ${personalInfo.linkedin ? `<span><a href="${personalInfo.linkedin}">LinkedIn</a></span>` : ""}
+          ${personalInfo.github ? `<span><a href="${personalInfo.github}">GitHub</a></span>` : ""}
+        </div>
       </div>
     </header>
-    
+
     ${personalInfo.summary ? `
       <section class="section">
         <h2>Professional Summary</h2>
         <p class="summary">${personalInfo.summary}</p>
       </section>
     ` : ""}
-    
+
     ${experience.length > 0 ? `
       <section class="section">
         <h2>Experience</h2>
@@ -229,7 +269,7 @@ function generateModernTemplate(resume: Resume): string {
         `).join("")}
       </section>
     ` : ""}
-    
+
     ${education.length > 0 ? `
       <section class="section">
         <h2>Education</h2>
@@ -246,7 +286,7 @@ function generateModernTemplate(resume: Resume): string {
         `).join("")}
       </section>
     ` : ""}
-    
+
     ${skills.length > 0 ? `
       <section class="section">
         <h2>Skills</h2>
@@ -255,21 +295,22 @@ function generateModernTemplate(resume: Resume): string {
         </div>
       </section>
     ` : ""}
-    
+
     ${projects.length > 0 ? `
       <section class="section">
         <h2>Projects</h2>
         ${projects.map(proj => `
           <div class="entry">
-            <div class="entry-title">${proj.name}</div>
+            <div class="entry-title">
+              ${proj.link ? `<a href="${proj.link}" target="_blank">${proj.name}</a>` : proj.name}
+            </div>
             <div class="entry-description">${proj.description}</div>
             ${proj.technologies.length > 0 ? `<div class="entry-description"><strong>Tech:</strong> ${proj.technologies.join(", ")}</div>` : ""}
-            ${proj.link ? `<div class="entry-description"><a href="${proj.link}">Link</a></div>` : ""}
           </div>
         `).join("")}
       </section>
     ` : ""}
-    
+
     ${certifications.length > 0 ? `
       <section class="section">
         <h2>Certifications</h2>
@@ -280,6 +321,7 @@ function generateModernTemplate(resume: Resume): string {
               <span class="entry-dates">${formatDate(cert.date)}</span>
             </div>
             <div class="entry-subtitle">${cert.issuer}</div>
+            ${cert.link ? `<a class="credential-link" href="${cert.link}" target="_blank">View Credential</a>` : ""}
           </div>
         `).join("")}
       </section>
@@ -291,11 +333,9 @@ function generateModernTemplate(resume: Resume): string {
 }
 
 function generateClassicTemplate(resume: Resume): string {
-  // Similar to modern but with different styling
-  return generateModernTemplate(resume); // Placeholder
+  return generateModernTemplate(resume);
 }
 
 function generateMinimalTemplate(resume: Resume): string {
-  // Minimal version
-  return generateModernTemplate(resume); // Placeholder
+  return generateModernTemplate(resume);
 }

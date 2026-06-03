@@ -24,6 +24,7 @@ export function PersonalInfoForm({ data, onSave, onDelete }: PersonalInfoFormPro
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<PersonalInfo>({
     resolver: zodResolver(personalInfoSchema),
@@ -38,13 +39,18 @@ export function PersonalInfoForm({ data, onSave, onDelete }: PersonalInfoFormPro
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setAvatarPreview(String(reader.result || ""));
+      const result = String(reader.result || "");
+      setAvatarPreview(result);
+      // Immediately propagate avatar change to the store so the preview updates
+      onSave({ ...getValues(), avatar: result });
     };
     reader.readAsDataURL(file);
   };
 
   const handleRemoveAvatar = () => {
     setAvatarPreview(null);
+    // Immediately propagate avatar removal to the store so the preview updates
+    onSave({ ...getValues(), avatar: "" });
   };
 
   return (
