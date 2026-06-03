@@ -10,7 +10,8 @@ import {
   KanbanSquare,
   FileText,
   ChevronLeft,
-  Menu
+  Menu,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,17 +21,32 @@ const NAV_ITEMS = [
   { href: "/jobs",      label: "Job Hunter", icon: Briefcase },
   { href: "/chat",      label: "AI Assistant", icon: MessageSquare },
   { href: "/tracker",   label: "Tracker",     icon: KanbanSquare },
-  { href: "/cv",        label: "CV Builder",  icon: FileText },
+  { 
+    href: "/cv",        
+    label: "Resume Intelligence",  
+    icon: FileText,
+    children: [
+      { href: "/cv/upload", label: "Resume Uploader" },
+      { href: "/cv/builder", label: "Resume Builder" },
+    ]
+  },
 ] as const;
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [expandedItems, setExpandedItems] = useState<string[]>(["/cv"]); // Resume Intelligence expanded by default
 
   // Checks if a route matches or is a dynamic child of the nav item
   const isRouteActive = (href: string) => {
     if (href === "/dashboard") return pathname === href;
     return pathname.startsWith(href);
+  };
+
+  const toggleExpanded = (href: string) => {
+    setExpandedItems(prev => 
+      prev.includes(href) ? prev.filter(h => h !== href) : [...prev, href]
+    );
   };
 
   return (
@@ -72,43 +88,109 @@ export function Sidebar() {
 
       {/* --- NAVIGATION LINKS --- */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = isRouteActive(href);
+        {NAV_ITEMS.map((item) => {
+          const active = isRouteActive(item.href);
+          const Icon = item.icon;
+          const hasChildren = "children" in item && item.children;
+          const isItemExpanded = expandedItems.includes(item.href);
           
           return (
-            <Link
-              key={href}
-              href={href}
-              title={!isExpanded ? label : undefined} // Tooltip fallback when minimized
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
-                active
-                  ? "bg-black text-white shadow-sm font-semibold"
-                  : "hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900"
-              )}
-            >
-              <Icon 
-                className={cn(
-                  "h-4 w-4 shrink-0 transition-transform duration-200", 
-                  !active && "group-hover:scale-105"
-                )} 
-              />
-              
-              {/* Conditional rendering with tracking safeguards */}
-              {isExpanded && (
-                <span className="truncate animate-in fade-in slide-in-from-left-2 duration-200">
-                  {label}
-                </span>
+            <div key={item.href}>
+              {hasChildren ? (
+                <button
+                  onClick={() => toggleExpanded(item.href)}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
+                    active
+                      ? "bg-black text-white shadow-sm font-semibold"
+                      : "hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900"
+                  )}
+                >
+                  <Icon 
+                    className={cn(
+                      "h-4 w-4 shrink-0 transition-transform duration-200", 
+                      !active && "group-hover:scale-105"
+                    )} 
+                  />
+                  
+                  {isExpanded && (
+                    <>
+                      <span className="truncate animate-in fade-in slide-in-from-left-2 duration-200">
+                        {item.label}
+                      </span>
+                      <ChevronDown 
+                        className={cn(
+                          "h-4 w-4 shrink-0 ml-auto transition-transform duration-200",
+                          isItemExpanded && "rotate-180"
+                        )}
+                      />
+                    </>
+                  )}
+
+                  {!isExpanded && (
+                    <div className={cn(
+                      "absolute left-0 w-1 h-4 bg-red-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
+                      active ? "opacity-100 scale-100" : "group-hover:opacity-60 group-hover:scale-100"
+                    )} />
+                  )}
+                </button>
+              ) : (
+                <Link
+                  href={item.href}
+                  title={!isExpanded ? item.label : undefined}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
+                    active
+                      ? "bg-black text-white shadow-sm font-semibold"
+                      : "hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900"
+                  )}
+                >
+                  <Icon 
+                    className={cn(
+                      "h-4 w-4 shrink-0 transition-transform duration-200", 
+                      !active && "group-hover:scale-105"
+                    )} 
+                  />
+                  
+                  {isExpanded && (
+                    <span className="truncate animate-in fade-in slide-in-from-left-2 duration-200">
+                      {item.label}
+                    </span>
+                  )}
+
+                  {!isExpanded && (
+                    <div className={cn(
+                      "absolute left-0 w-1 h-4 bg-red-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
+                      active ? "opacity-100 scale-100" : "group-hover:opacity-60 group-hover:scale-100"
+                    )} />
+                  )}
+                </Link>
               )}
 
-              {/* Minimalist Hover Indicator Dot for Minimized State */}
-              {!isExpanded && (
-                <div className={cn(
-                  "absolute left-0 w-1 h-4 bg-red-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
-                  active ? "opacity-100 scale-100" : "group-hover:opacity-60 group-hover:scale-100"
-                )} />
+              {/* Render children if expanded and has children */}
+              {hasChildren && isItemExpanded && isExpanded && (
+                <div className="pl-6 space-y-1 mt-1">
+                  {item.children.map((child) => {
+                    const childActive = isRouteActive(child.href);
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200",
+                          childActive
+                            ? "bg-neutral-200 text-neutral-900 font-semibold"
+                            : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+                        )}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {child.label}
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>
