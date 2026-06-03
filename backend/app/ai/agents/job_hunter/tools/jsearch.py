@@ -24,7 +24,7 @@ async def search_jsearch(role: str, location: str) -> list[dict]:
         data = resp.json()
 
     results = []
-    for item in data.get("data", []):
+    for item in data.get("data", [])[:5]:
         lo = item.get("job_min_salary")
         hi = item.get("job_max_salary")
         cur = item.get("job_salary_currency") or "USD"

@@ -18,7 +18,7 @@ async def search_bdjobs(role: str, location: str, date_from: str | None = None) 
             search_term=role,
             location=loc,
             hours_old=336,  # 14-day window — BD market posts less frequently than LinkedIn
-            results_wanted=10,
+            results_wanted=5,
         )
         results = []
         for _, row in df.iterrows():

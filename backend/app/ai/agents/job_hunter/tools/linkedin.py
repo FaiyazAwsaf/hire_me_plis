@@ -16,7 +16,7 @@ async def search_linkedin(role: str, location: str, date_from: str | None = None
             site_name=["linkedin"],
             search_term=role,
             hours_old=336,
-            results_wanted=10,
+            results_wanted=5,
         )
         if location:
             kwargs["location"] = location
