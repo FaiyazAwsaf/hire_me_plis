@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 # Cache pip downloads across builds — wheels are stored in BuildKit cache, not the image layer
 RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && \
     pip install -r requirements.txt
 
 COPY . .
