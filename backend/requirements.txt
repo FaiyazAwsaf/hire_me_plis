@@ -43,6 +43,9 @@ langgraph
 anthropic
 openai
 
+# Job scraping (unpinned — scraping deps evolve with site changes)
+python-jobspy
+
 # Utilities
 python-dotenv==1.0.1
 
