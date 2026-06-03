@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,13 +42,14 @@ async def register(
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    body: LoginRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    username: Annotated[str, Form()],
+    password: Annotated[str, Form()],
 ) -> TokenResponse:
-    """Authenticate a user and return an access token."""
-    result = await db.execute(select(User).where(User.email == body.email))
+    """Authenticate a user and return an access token. Accepts OAuth2 form data (username as email)."""
+    result = await db.execute(select(User).where(User.email == username))
     user = result.scalar_one_or_none()
-    if user is None or not auth_service.verify_password(body.password, user.hashed_pw):
+    if user is None or not auth_service.verify_password(password, user.hashed_pw):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = auth_service.create_access_token({"sub": str(user.id)})
