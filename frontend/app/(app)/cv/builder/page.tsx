@@ -31,6 +31,17 @@ import { TemplateSelector } from "@/components/resume-builder/template-selector"
 import { ExportOptions } from "@/components/resume-builder/export-options";
 import { ResumeManagement } from "@/components/resume-builder/resume-management";
 
+const emptyPersonalInfo = {
+  fullName: "",
+  email: "",
+  phone: "",
+  address: "",
+  linkedin: "",
+  github: "",
+  portfolio: "",
+  summary: "",
+};
+
 /**
  * Resume Builder Page
  * Main component for building and editing resumes
@@ -57,6 +68,18 @@ export default function ResumeBuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [resumeTitle, setResumeTitle] = useState(currentResume.title);
   const [showManagement, setShowManagement] = useState(false);
+  const [previewResume, setPreviewResume] = useState(currentResume);
+
+  // Keep the preview snapshot in sync with the store's current resume.
+  // This ensures any section that calls `updateCurrentResume` will update the preview.
+  useEffect(() => {
+    setPreviewResume(currentResume);
+  }, [currentResume]);
+
+  const syncPreviewResume = (resume: Resume) => {
+    setPreviewResume(resume);
+    setCurrentResume(resume);
+  };
 
   // Load saved resumes from localStorage on mount
   useEffect(() => {
@@ -101,7 +124,7 @@ export default function ResumeBuilderPage() {
         addSavedResume(updatedResume);
       }
 
-      setCurrentResume(updatedResume);
+        syncPreviewResume(updatedResume);
       alert("Resume saved successfully!");
     } catch (error) {
       console.error("Error saving resume:", error);
@@ -118,7 +141,7 @@ export default function ResumeBuilderPage() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setCurrentResume(newResume);
+    syncPreviewResume(newResume);
     setResumeTitle("My Resume");
   };
 
@@ -131,7 +154,7 @@ export default function ResumeBuilderPage() {
       updatedAt: new Date().toISOString(),
     };
     addSavedResume(duplicated);
-    setCurrentResume(duplicated);
+    syncPreviewResume(duplicated);
     setShowManagement(false);
   };
 
@@ -148,7 +171,29 @@ export default function ResumeBuilderPage() {
     setCurrentResume(resume);
     setResumeTitle(resume.title);
     setSelectedTemplate(resume.templateId);
+    setPreviewResume(resume);
     setShowManagement(false);
+  };
+
+  const handleSavePersonalInfo = (data: Resume["personalInfo"]) => {
+    const updatedResume = {
+      ...currentResume,
+      personalInfo: data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update the store; preview will sync via effect above.
+    updateCurrentResume({ personalInfo: data });
+  };
+
+  const handleDeletePersonalInfo = () => {
+    const clearedResume = {
+      ...currentResume,
+      personalInfo: emptyPersonalInfo,
+      updatedAt: new Date().toISOString(),
+    };
+
+    updateCurrentResume({ personalInfo: emptyPersonalInfo });
   };
 
   return (
@@ -276,8 +321,8 @@ export default function ResumeBuilderPage() {
                 </div>
 
                 {/* Tabs Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  <TabsContent value="personal" className="space-y-4">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <TabsContent value="personal" className="space-y-4 mt-0">
                     <TemplateSelector
                       selectedTemplate={selectedTemplate}
                       onSelectTemplate={setSelectedTemplate}
@@ -285,13 +330,12 @@ export default function ResumeBuilderPage() {
                     <Separator />
                     <PersonalInfoForm
                       data={currentResume.personalInfo}
-                      onSave={(data) =>
-                        updateCurrentResume({ personalInfo: data })
-                      }
+                      onSave={handleSavePersonalInfo}
+                      onDelete={handleDeletePersonalInfo}
                     />
                   </TabsContent>
 
-                  <TabsContent value="experience">
+                  <TabsContent value="experience" className="mt-0">
                     <ExperienceForm
                       experiences={currentResume.experience}
                       onUpdate={(data) =>
@@ -300,7 +344,7 @@ export default function ResumeBuilderPage() {
                     />
                   </TabsContent>
 
-                  <TabsContent value="education">
+                  <TabsContent value="education" className="mt-0">
                     <EducationForm
                       educations={currentResume.education}
                       onUpdate={(data) =>
@@ -309,14 +353,14 @@ export default function ResumeBuilderPage() {
                     />
                   </TabsContent>
 
-                  <TabsContent value="skills">
+                  <TabsContent value="skills" className="mt-0">
                     <SkillsForm
                       skills={currentResume.skills}
                       onUpdate={(data) => updateCurrentResume({ skills: data })}
                     />
                   </TabsContent>
 
-                  <TabsContent value="projects">
+                  <TabsContent value="projects" className="mt-0">
                     <ProjectsForm
                       projects={currentResume.projects}
                       onUpdate={(data) =>
@@ -325,7 +369,7 @@ export default function ResumeBuilderPage() {
                     />
                   </TabsContent>
 
-                  <TabsContent value="certifications">
+                  <TabsContent value="certifications" className="mt-0">
                     <CertificationsForm
                       certifications={currentResume.certifications}
                       onUpdate={(data) =>
@@ -343,7 +387,7 @@ export default function ResumeBuilderPage() {
             </div>
 
             {/* Right Side: Preview */}
-            <ResumePreview resume={currentResume} />
+            <ResumePreview resume={previewResume} templateId={selectedTemplate} />
           </div>
         )}
       </div>

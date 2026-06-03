@@ -13,6 +13,7 @@ export const personalInfoSchema = z.object({
   linkedin: z.string().url("Invalid LinkedIn URL").optional().or(z.literal("")),
   github: z.string().url("Invalid GitHub URL").optional().or(z.literal("")),
   portfolio: z.string().url("Invalid portfolio URL").optional().or(z.literal("")),
+  avatar: z.string().optional().or(z.literal("")),
   summary: z.string().max(500, "Summary must be under 500 characters").optional().default(""),
 });
 
@@ -24,7 +25,13 @@ export const educationSchema = z.object({
   endDate: z.string().min(1, "End date is required"),
   gpa: z.string().optional().default(""),
   description: z.string().optional().default(""),
-});
+}).refine(
+  (data) => !data.startDate || !data.endDate || new Date(data.startDate) <= new Date(data.endDate),
+  {
+    message: "End date must be after or equal to start date",
+    path: ["endDate"],
+  }
+);
 
 export const experienceSchema = z.object({
   id: z.string(),
@@ -33,7 +40,13 @@ export const experienceSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   responsibilities: z.string().min(1, "Responsibilities are required"),
-});
+}).refine(
+  (data) => !data.startDate || !data.endDate || new Date(data.startDate) <= new Date(data.endDate),
+  {
+    message: "End date must be after or equal to start date",
+    path: ["endDate"],
+  }
+);
 
 export const skillSchema = z.object({
   id: z.string(),
@@ -94,6 +107,7 @@ export const defaultResume: Resume = {
     linkedin: "",
     github: "",
     portfolio: "",
+    avatar: "",
     summary: "",
   },
   education: [],

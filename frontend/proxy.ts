@@ -5,6 +5,11 @@ const PUBLIC_PATHS = ["/login", "/register"];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Keep local development lightweight; enforce auth outside dev only.
+  if (process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
   // Allow public auth routes through
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
