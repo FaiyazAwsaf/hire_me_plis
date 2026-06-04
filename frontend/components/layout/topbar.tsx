@@ -7,12 +7,9 @@ import {
   Bell, 
   Sparkles, 
   Briefcase, 
-  Calendar, 
   CheckSquare, 
-  X, 
   Settings, 
-  LogOut, 
-  User 
+  LogOut 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,6 +20,7 @@ interface Nudge {
   id: string;
   type: "warning" | "goal" | "system";
   text: string;
+  actionView: "kanban" | "calendar" | "goals";
   actionLabel?: string;
   timestamp: string;
 }
@@ -32,6 +30,7 @@ const MOCK_NUDGES: Nudge[] = [
     id: "nudge-1",
     type: "warning",
     text: "You haven't applied this week. Here are 3 openings matching your profile.",
+    actionView: "kanban",
     actionLabel: "View Match Cards",
     timestamp: "2h ago",
   },
@@ -39,9 +38,26 @@ const MOCK_NUDGES: Nudge[] = [
     id: "nudge-2",
     type: "goal",
     text: "Goal checklist tracking: Your deadline to 'Update CV by Sunday' is approaching.",
+    actionView: "goals",
     actionLabel: "Go to Tracker",
     timestamp: "5h ago",
   },
+  {
+    id: "nudge-3",
+    type: "goal",
+    text: "Review your structured upcoming tasks on your personal calendar timeline grid.",
+    actionView: "calendar",
+    actionLabel: "View Calendar",
+    timestamp: "6h ago",
+  },
+  {
+    id: "nudge-4",
+    type: "system",
+    text: "System sync successful: All ongoing applications are synchronized with your active goals.",
+    actionView: "kanban",
+    actionLabel: "Open Dashboard",
+    timestamp: "1d ago",
+  }
 ];
 
 export function Topbar() {
@@ -51,7 +67,7 @@ export function Topbar() {
   
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [nudges, setNudges] = useState<Nudge[]>(MOCK_NUDGES);
+  const [nudges] = useState<Nudge[]>(MOCK_NUDGES);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -59,7 +75,7 @@ export function Topbar() {
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "CP";
   const unreadCount = nudges.length;
 
-  // Handle clicking outside to automatically close the dropdown menus
+  // Handle clicking outside to automatically close dropdowns
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -73,15 +89,14 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const dismissNudge = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNudges((prev) => prev.filter((n) => n.id !== id));
-  };
-
   const handleLogout = () => {
     clearAuth();
-    // Redirect cleanly to the root landing page (frontend/app/page.tsx)
     router.push("/");
+  };
+
+  const handleNudgeNavigation = (view: "kanban" | "calendar" | "goals") => {
+    setIsNotificationsOpen(false);
+    router.push(`/tracker?view=${view}`);
   };
 
   return (
@@ -95,7 +110,7 @@ export function Topbar() {
           aria-label="Notifications"
           onClick={() => {
             setIsNotificationsOpen(!isNotificationsOpen);
-            setIsProfileOpen(false); // Close other dropdown
+            setIsProfileOpen(false);
           }}
           className={`relative rounded-xl transition-colors ${isNotificationsOpen ? 'bg-muted' : ''}`}
         >
@@ -116,18 +131,10 @@ export function Topbar() {
                 <Sparkles className="h-4 w-4 text-red-500 fill-red-500/20" />
                 <h3 className="font-semibold text-sm">Agent Nudges & Reminders</h3>
               </div>
-              {unreadCount > 0 && (
-                <button 
-                  onClick={() => setNudges([])}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
-                >
-                  Clear all
-                </button>
-              )}
             </div>
 
-            {/* Notification content body */}
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-border">
+            {/* Notification content body (Scroll-locked container after 3 elements) */}
+            <div className="max-h-[315px] overflow-y-auto divide-y divide-border scrollbar-thin">
               {nudges.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
                   <Bell className="h-8 w-8 opacity-20" />
@@ -152,7 +159,7 @@ export function Topbar() {
                       )}
                     </div>
 
-                    <div className="flex-1 space-y-1.5 pr-4">
+                    <div className="flex-1 space-y-1.5">
                       <p className="text-xs leading-relaxed text-foreground font-medium text-left">
                         {nudge.text}
                       </p>
@@ -160,10 +167,7 @@ export function Topbar() {
                       <div className="flex items-center gap-3">
                         {nudge.actionLabel && (
                           <button 
-                            onClick={() => {
-                              setIsNotificationsOpen(false);
-                              alert(`Routing interface stream toward respective workflow context...`);
-                            }}
+                            onClick={() => handleNudgeNavigation(nudge.actionView)}
                             className="text-[11px] text-red-500 font-semibold hover:underline"
                           >
                             {nudge.actionLabel} &rarr;
@@ -174,14 +178,6 @@ export function Topbar() {
                         </span>
                       </div>
                     </div>
-
-                    <button
-                      onClick={(e) => dismissNudge(nudge.id, e)}
-                      className="absolute top-3 right-3 text-muted-foreground/60 hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded-md hover:bg-muted"
-                      title="Dismiss nudge"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
                   </div>
                 ))
               )}
@@ -195,7 +191,7 @@ export function Topbar() {
         <button
           onClick={() => {
             setIsProfileOpen(!isProfileOpen);
-            setIsNotificationsOpen(false); // Close other dropdown
+            setIsNotificationsOpen(false);
           }}
           title="User settings"
           className="focus-visible:outline-none rounded-full block"
@@ -210,7 +206,6 @@ export function Topbar() {
         {/* --- DYNAMIC PROFILE MENU DROPDOWN --- */}
         {isProfileOpen && (
           <div className="absolute right-0 mt-2 w-56 bg-popover text-popover-foreground border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-3 duration-200 text-left">
-            {/* Meta User Profile Section */}
             <div className="p-3 border-b bg-muted/10">
               <p className="text-xs text-muted-foreground font-medium">Signed in as</p>
               <p className="text-xs font-bold text-neutral-900 truncate mt-0.5">
@@ -218,7 +213,6 @@ export function Topbar() {
               </p>
             </div>
 
-            {/* Menu Links */}
             <div className="p-1.5 space-y-0.5">
               <Link
                 href="/settings"
@@ -230,7 +224,6 @@ export function Topbar() {
               </Link>
             </div>
 
-            {/* Action Section */}
             <div className="p-1.5 border-t bg-neutral-50/50">
               <button
                 onClick={handleLogout}

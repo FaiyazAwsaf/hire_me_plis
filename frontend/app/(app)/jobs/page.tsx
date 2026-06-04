@@ -69,7 +69,7 @@ function JobsSearchContent() {
     <div className="space-y-6 max-w-2xl mx-auto min-h-[calc(100vh-theme(spacing.16))] text-left">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-black tracking-tight text-neutral-900">Job Hunter Agent</h1>
-        <p className="text-sm text-muted-foreground">Pillar 1: Semantic job tracking matched directly against your CV index.</p>
+        <p className="text-sm text-muted-foreground"></p>
       </div>
 
       {/* --- SEMANTIC NATURAL LANGUAGE SEARCH BAR --- */}
