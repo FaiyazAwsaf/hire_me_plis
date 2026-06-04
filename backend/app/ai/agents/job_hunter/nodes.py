@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 from app.ai.agents.fit_scorer import scorer
 from app.ai.agents.job_hunter.state import JobHunterState
@@ -10,6 +11,8 @@ from app.ai.agents.job_hunter.tools.scraper import search_remotive
 from app.ai.llm.generate import generate
 from app.ai.llm.prompts.jobs import parse_query_prompt
 from app.core.llm_client import LIGHT_MODEL
+
+logger = logging.getLogger(__name__)
 
 
 async def parse_query_node(state: JobHunterState) -> dict:
@@ -29,50 +32,76 @@ async def parse_query_node(state: JobHunterState) -> dict:
 
 
 async def search_node(state: JobHunterState) -> dict:
-    """Fan-out: fetch up to 5 jobs from BDJobs, LinkedIn, and JSearch in parallel.
+    """Fan-out: fetch jobs from all sources (BDJobs, LinkedIn, JSearch, Remotive) in parallel.
 
+    All sources are primary — they all run simultaneously and contribute their results.
     Each source is independent — one failing (rate-limit, network error) doesn't
-    affect the others. Falls back to Remotive only if all three return empty.
+    affect the others. Results are combined from all successful sources.
     """
     role = state["role"]
     location = state["location"]
     date_from = state["date_from"]
 
-    # All three primary sources launch simultaneously
-    bdjobs_res, linkedin_res, jsearch_res = await asyncio.gather(
+    logger.info(f"🔍 Job search: role={role}, location={location}, date_from={date_from}")
+
+    # All four sources launch simultaneously
+    bdjobs_res, linkedin_res, jsearch_res, remotive_res = await asyncio.gather(
         search_bdjobs(role, location, date_from),
         search_linkedin(role, location, date_from),
         search_jsearch(role, location),
-        return_exceptions=True,  # one source error must not cancel the other two
+        search_remotive(f"{role} {location}".strip()),
+        return_exceptions=True,  # one source error must not cancel the others
     )
 
     combined: list[dict] = []
     sources: list[str] = []
 
     # isinstance check distinguishes successful list results from exception objects
-    if isinstance(bdjobs_res, list) and bdjobs_res:
-        combined.extend(bdjobs_res)
-        sources.append("bdjobs")
+    if isinstance(bdjobs_res, Exception):
+        logger.warning(f"BDJobs failed: {type(bdjobs_res).__name__}: {bdjobs_res}")
+    elif isinstance(bdjobs_res, list):
+        if bdjobs_res:
+            logger.info(f"✅ BDJobs: {len(bdjobs_res)} jobs found")
+            combined.extend(bdjobs_res)
+            sources.append("bdjobs")
+        else:
+            logger.info("BDJobs: no jobs found (empty result)")
 
-    if isinstance(linkedin_res, list) and linkedin_res:
-        combined.extend(linkedin_res)
-        sources.append("linkedin")
+    if isinstance(linkedin_res, Exception):
+        logger.warning(f"LinkedIn failed: {type(linkedin_res).__name__}: {linkedin_res}")
+    elif isinstance(linkedin_res, list):
+        if linkedin_res:
+            logger.info(f"✅ LinkedIn: {len(linkedin_res)} jobs found")
+            combined.extend(linkedin_res)
+            sources.append("linkedin")
+        else:
+            logger.info("LinkedIn: no jobs found (empty result)")
 
-    if isinstance(jsearch_res, list) and jsearch_res:
-        combined.extend(jsearch_res)
-        sources.append("jsearch")
+    if isinstance(jsearch_res, Exception):
+        logger.warning(f"JSearch failed: {type(jsearch_res).__name__}: {jsearch_res}")
+    elif isinstance(jsearch_res, list):
+        if jsearch_res:
+            logger.info(f"✅ JSearch: {len(jsearch_res)} jobs found")
+            combined.extend(jsearch_res)
+            sources.append("jsearch")
+        else:
+            logger.info("JSearch: no jobs found (empty result)")
+
+    if isinstance(remotive_res, Exception):
+        logger.warning(f"Remotive failed: {type(remotive_res).__name__}: {remotive_res}")
+    elif isinstance(remotive_res, list):
+        if remotive_res:
+            logger.info(f"✅ Remotive: {len(remotive_res)} jobs found")
+            combined.extend(remotive_res)
+            sources.append("remotive")
+        else:
+            logger.info("Remotive: no jobs found (empty result)")
 
     if combined:
+        logger.info(f"✅ Combined {len(combined)} jobs from sources: {','.join(sources)}")
         return {"raw_jobs": combined, "source": ",".join(sources)}
 
-    # Last resort — Remotive is remote-only but better than returning nothing
-    try:
-        remotive_res = await search_remotive(f"{role} {location}".strip())
-        if remotive_res:
-            return {"raw_jobs": remotive_res, "source": "remotive"}
-    except Exception:
-        pass
-
+    logger.warning("❌ No jobs found from any source")
     return {"raw_jobs": [], "source": "none"}
 
 
@@ -99,6 +128,7 @@ async def score_node(state: JobHunterState) -> dict:
                 "salary_range": job.get("salary_range"),
                 "deadline": job.get("deadline"),
                 "url": job["url"],
+                "source_platform": job.get("source_platform"),
                 "fit_score": result.score,
                 "fit_reasoning": result.explanation,
             }

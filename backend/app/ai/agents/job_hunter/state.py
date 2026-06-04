@@ -13,6 +13,7 @@ class RawJob:
     deadline: str | None
     url: str
     description: str
+    source_platform: str | None = None  # which of the 4 sources fetched this job
 
 
 class JobHunterState(TypedDict):
