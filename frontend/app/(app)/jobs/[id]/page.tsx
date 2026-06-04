@@ -16,7 +16,21 @@ import {
   Calendar 
 } from "lucide-react";
 
-const REASONING_DETAILS_DB: Record<string, any> = {
+interface JobReasoningDetail {
+  role: string;
+  company: string;
+  location: string;
+  salaryRange: string;
+  deadline: string;
+  fitScore: number;
+  verdict: string;
+  externalUrl: string;
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+}
+
+const REASONING_DETAILS_DB: Record<string, JobReasoningDetail> = {
   "job-1": {
     role: "Machine Learning Intern",
     company: "DataVanguard AI",
@@ -99,7 +113,9 @@ function JobDetailContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
+    <div className="relative isolate mx-auto max-w-2xl animate-in fade-in duration-200 text-left">
+      <PageLightPillars />
+      <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/38 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
       
       {/* Back button preserving query parameter states */}
       <Link href={backPath} className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
@@ -107,7 +123,7 @@ function JobDetailContent() {
         <span>Back to Job List</span>
       </Link>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b pb-5">
+      <div className="flex flex-col items-start justify-between gap-4 border-b border-white/60 pb-5 sm:flex-row">
         <div>
           <div className="flex items-center gap-1.5 text-xs font-bold text-red-500 uppercase tracking-wide">
             <Sparkles className="h-3.5 w-3.5 fill-red-500/10" />
@@ -133,7 +149,7 @@ function JobDetailContent() {
         </div>
       </div>
 
-      <div className="bg-zinc-50 border rounded-2xl p-4 space-y-1.5">
+      <div className="space-y-1.5 rounded-2xl border border-white/60 bg-white/50 p-4 shadow-inner backdrop-blur-xl">
         <div className="text-xs font-bold text-neutral-800 uppercase tracking-wider">AI Verdict Score Summary</div>
         <div className="text-sm font-black text-neutral-900">&ldquo;{job.verdict}&rdquo;</div>
         <p className="text-xs leading-relaxed text-neutral-600">{job.summary}</p>
@@ -146,7 +162,7 @@ function JobDetailContent() {
         </h3>
         <div className="space-y-1.5">
           {job.strengths.map((strength: string, i: number) => (
-            <div key={i} className="text-xs text-neutral-700 bg-emerald-50/30 border border-emerald-100/50 p-3 rounded-xl leading-relaxed">
+            <div key={i} className="rounded-xl border border-emerald-100/70 bg-emerald-50/45 p-3 text-xs leading-relaxed text-neutral-700 backdrop-blur">
               {strength}
             </div>
           ))}
@@ -160,14 +176,14 @@ function JobDetailContent() {
         </h3>
         <div className="space-y-1.5">
           {job.gaps.map((gap: string, i: number) => (
-            <div key={i} className="text-xs text-neutral-700 bg-amber-50/30 border border-amber-100/50 p-3 rounded-xl leading-relaxed">
+            <div key={i} className="rounded-xl border border-amber-100/70 bg-amber-50/45 p-3 text-xs leading-relaxed text-neutral-700 backdrop-blur">
               {gap}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex flex-col items-center justify-between gap-4 border-t border-white/60 pt-4 sm:flex-row">
         <div className="text-xs text-muted-foreground flex items-center gap-1">
           <Calendar className="h-3.5 w-3.5" />
           <span>Application Window Deadline: <strong className="text-neutral-700 font-semibold">{job.deadline}</strong></span>
@@ -179,7 +195,7 @@ function JobDetailContent() {
           rel="noreferrer"
           className={cn(
             buttonVariants({ variant: "default" }),
-            "w-full sm:w-auto bg-black text-white hover:bg-neutral-800 rounded-xl px-6 py-2.5 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 shadow-sm"
+            "w-full sm:w-auto bg-slate-900 text-white hover:bg-slate-800 rounded-xl px-6 py-2.5 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 shadow-sm"
           )}
         >
           <span>Apply on External Board</span>
@@ -187,7 +203,46 @@ function JobDetailContent() {
         </a>
       </div>
 
+      </div>
     </div>
+  );
+}
+
+function PageLightPillars() {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-[-6rem] z-0 overflow-hidden rounded-[40px]" aria-hidden="true">
+        <div className="page-light-pillar page-light-pillar-primary absolute left-[8%] top-[-18%] h-[680px] w-44 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(79,70,229,0.10)_12%,rgba(129,140,248,0.30)_42%,rgba(196,181,253,0.18)_70%,transparent_100%)] blur-3xl" />
+        <div className="page-light-pillar page-light-pillar-secondary absolute right-[12%] top-[-20%] h-[720px] w-52 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(196,181,253,0.12)_16%,rgba(129,140,248,0.26)_46%,rgba(79,70,229,0.14)_74%,transparent_100%)] blur-3xl" />
+      </div>
+      <style jsx>{`
+        .page-light-pillar {
+          opacity: 0.82;
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
+        }
+        .page-light-pillar-primary {
+          animation: page-light-pillar-primary 34s ease-in-out infinite alternate;
+        }
+        .page-light-pillar-secondary {
+          animation: page-light-pillar-secondary 38s ease-in-out infinite alternate;
+        }
+        @keyframes page-light-pillar-primary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(22px, 26px, 0) scaleY(1.07); }
+        }
+        @keyframes page-light-pillar-secondary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(-24px, 30px, 0) scaleY(1.06); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .page-light-pillar {
+            animation: none;
+            will-change: auto;
+          }
+        }
+      `}</style>
+    </>
   );
 }
 

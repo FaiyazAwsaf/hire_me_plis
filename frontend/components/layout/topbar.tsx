@@ -8,7 +8,6 @@ import {
   Sparkles,
   Briefcase,
   CheckSquare,
-  X,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -101,7 +100,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="relative z-[9000] flex h-16 shrink-0 items-center justify-end gap-3 overflow-visible border-b border-white/60 bg-white/45 px-6 shadow-[0_12px_35px_rgba(15,23,42,0.05)] backdrop-blur-2xl">
+    <header className="relative z-[9000] flex h-16 w-full shrink-0 items-center justify-end gap-3 overflow-visible border-b border-slate-700/35 bg-slate-900/72 px-6 shadow-[0_14px_42px_rgba(15,23,42,0.22)] backdrop-blur-2xl">
       
       {/* --- NOTIFICATION DROPDOWN ANCHOR CONTAINER --- */}
       <div className="relative z-[10000]" ref={dropdownRef}>
@@ -113,11 +112,11 @@ export function Topbar() {
             setIsNotificationsOpen(!isNotificationsOpen);
             setIsProfileOpen(false);
           }}
-          className={`relative rounded-full border border-white/70 bg-white/50 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-white/80 hover:shadow-md ${isNotificationsOpen ? 'bg-white/80 shadow-md' : ''}`}
+          className={`relative rounded-full border border-white/15 bg-white/10 text-white shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-white/18 hover:shadow-md ${isNotificationsOpen ? 'bg-white/20 shadow-md' : ''}`}
         >
           <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
-            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center p-0.5 text-[10px] bg-red-500 hover:bg-red-500 text-white font-bold border-2 border-white">
+            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 flex items-center justify-center p-0.5 text-[10px] bg-red-500 hover:bg-red-500 text-white font-bold border-2 border-slate-900">
               {unreadCount}
             </Badge>
           )}
@@ -199,8 +198,8 @@ export function Topbar() {
           title="User settings"
           className="focus-visible:outline-none rounded-full block"
         >
-          <Avatar className="h-9 w-9 cursor-pointer border border-white/70 bg-white/50 shadow-sm ring-offset-background backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-md">
-            <AvatarFallback className="text-xs font-semibold bg-neutral-900/85 text-white">
+          <Avatar className="h-9 w-9 cursor-pointer border border-white/15 bg-white/10 shadow-sm ring-offset-background backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-white/18 hover:shadow-md">
+            <AvatarFallback className="text-xs font-semibold bg-white/12 text-white">
               {initials}
             </AvatarFallback>
           </Avatar>

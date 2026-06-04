@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,11 +49,6 @@ function JobsSearchContent() {
   const [query, setQuery] = useState(urlQuery);
   const [isSearched, setIsSearched] = useState(!!urlQuery);
 
-  useEffect(() => {
-    setQuery(urlQuery);
-    setIsSearched(!!urlQuery);
-  }, [urlQuery]);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -66,14 +61,16 @@ function JobsSearchContent() {
   const sortedJobs = [...MOCK_JOBS_DATABASE].sort((a, b) => b.fitScore - a.fitScore);
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto min-h-[calc(100vh-theme(spacing.16))] text-left">
+    <div className="relative isolate mx-auto max-w-2xl min-h-[calc(100vh-theme(spacing.16))] text-left">
+      <PageLightPillars />
+      <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/38 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-black tracking-tight text-neutral-900">Job Hunter Agent</h1>
         <p className="text-sm text-muted-foreground"></p>
       </div>
 
       {/* --- SEMANTIC NATURAL LANGUAGE SEARCH BAR --- */}
-      <form onSubmit={handleSearch} className="flex gap-2 bg-white p-1.5 rounded-2xl border shadow-sm">
+      <form onSubmit={handleSearch} className="flex gap-2 rounded-2xl border border-white/60 bg-white/58 p-1.5 shadow-[0_14px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         <div className="flex-1 flex items-center gap-2 px-3">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Input 
@@ -83,7 +80,7 @@ function JobsSearchContent() {
             className="flex-1 border-0 bg-transparent p-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
           />
         </div>
-        <Button type="submit" className="bg-black hover:bg-neutral-800 text-white rounded-xl px-5 font-medium">
+        <Button type="submit" className="rounded-xl bg-slate-900 px-5 font-medium text-white hover:bg-slate-800">
           Search Agent
         </Button>
       </form>
@@ -91,8 +88,10 @@ function JobsSearchContent() {
       {/* --- COLUMN LAYOUT FOR SORTED JOB CARDS --- */}
       <div className="space-y-4">
         {!isSearched ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 h-64 text-center p-6 bg-muted/20">
-            <BrainCircuit className="h-5 w-5 text-red-500 animate-pulse mb-2" />
+          <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-white/60 bg-white/42 p-6 text-center shadow-inner backdrop-blur-xl">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/60 bg-white/55 shadow-sm">
+              <BrainCircuit className="h-5 w-5 text-[#4F46E5]" />
+            </div>
             <p className="font-semibold text-neutral-800 text-sm">No agent search initiated yet</p>
             <p className="text-xs text-muted-foreground mt-1">
               Enter a natural-language intent request above to crawl matching local openings.
@@ -102,7 +101,7 @@ function JobsSearchContent() {
           <div className="flex flex-col gap-3 animate-in fade-in duration-300">
             {sortedJobs.map((job) => (
               <Link key={job.id} href={`/jobs/${job.id}?q=${encodeURIComponent(query)}`} className="block group">
-                <Card className="transition-all duration-200 border bg-white rounded-xl overflow-hidden hover:border-neutral-400 hover:shadow-sm">
+                <Card className="overflow-hidden rounded-2xl border border-white/60 bg-white/58 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/68 hover:shadow-[0_22px_60px_rgba(15,23,42,0.12)]">
                   <CardHeader className="pb-2 pt-4 px-5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -153,6 +152,7 @@ function JobsSearchContent() {
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -162,5 +162,43 @@ export default function JobsPage() {
     <Suspense fallback={<div className="text-center text-xs text-muted-foreground pt-12">Loading Agent Index...</div>}>
       <JobsSearchContent />
     </Suspense>
+  );
+}
+
+function PageLightPillars() {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-[-6rem] z-0 overflow-hidden rounded-[40px]" aria-hidden="true">
+        <div className="page-light-pillar page-light-pillar-primary absolute left-[8%] top-[-18%] h-[680px] w-44 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(79,70,229,0.10)_12%,rgba(129,140,248,0.30)_42%,rgba(196,181,253,0.18)_70%,transparent_100%)] blur-3xl" />
+        <div className="page-light-pillar page-light-pillar-secondary absolute right-[12%] top-[-20%] h-[720px] w-52 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(196,181,253,0.12)_16%,rgba(129,140,248,0.26)_46%,rgba(79,70,229,0.14)_74%,transparent_100%)] blur-3xl" />
+      </div>
+      <style jsx>{`
+        .page-light-pillar {
+          opacity: 0.82;
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
+        }
+        .page-light-pillar-primary {
+          animation: page-light-pillar-primary 34s ease-in-out infinite alternate;
+        }
+        .page-light-pillar-secondary {
+          animation: page-light-pillar-secondary 38s ease-in-out infinite alternate;
+        }
+        @keyframes page-light-pillar-primary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(22px, 26px, 0) scaleY(1.07); }
+        }
+        @keyframes page-light-pillar-secondary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(-24px, 30px, 0) scaleY(1.06); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .page-light-pillar {
+            animation: none;
+            will-change: auto;
+          }
+        }
+      `}</style>
+    </>
   );
 }

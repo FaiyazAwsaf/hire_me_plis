@@ -156,7 +156,9 @@ export default function UploadPage() {
   }[status];
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="relative isolate max-w-3xl">
+      <PageLightPillars />
+      <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/38 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
       <div className="flex items-center justify-between">
         <div>
@@ -166,14 +168,14 @@ export default function UploadPage() {
           </p>
         </div>
         <Link href="/cv/builder">
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800">
             New Resume
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border border-white/60 bg-white/58 shadow-[0_18px_55px_rgba(15,23,42,0.09)] backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="text-base">Upload your CV</CardTitle>
           <CardDescription>
@@ -201,8 +203,8 @@ export default function UploadPage() {
               setIsDragging(false);
               handleFileSelect(event.dataTransfer.files?.[0] || null);
             }}
-            className={`flex h-40 w-full items-center justify-center rounded-lg border border-dashed text-center transition-colors ${
-              isDragging ? "border-neutral-900 bg-neutral-100" : "border-neutral-300 bg-muted/20 hover:bg-muted/40"
+            className={`flex h-40 w-full items-center justify-center rounded-2xl border text-center shadow-inner transition-colors ${
+              isDragging ? "border-[#4F46E5]/50 bg-[#818CF8]/15" : "border-white/60 bg-white/38 hover:bg-white/52"
             }`}
           >
             <div className="flex flex-col items-center gap-2 px-6 text-muted-foreground">
@@ -225,7 +227,7 @@ export default function UploadPage() {
 
           <Button
             type="button"
-            className="w-full"
+            className="w-full bg-slate-900 text-white hover:bg-slate-800"
             disabled={!selectedFile || status === "uploading" || status === "processing"}
             onClick={handleUpload}
           >
@@ -234,7 +236,7 @@ export default function UploadPage() {
         </CardContent>
       </Card>
 
-      <Separator />
+      <Separator className="bg-white/60" />
 
       <div>
         <h2 className="mb-4 font-semibold">How it works</h2>
@@ -257,6 +259,45 @@ export default function UploadPage() {
           </li>
         </ul>
       </div>
+      </div>
     </div>
+  );
+}
+
+function PageLightPillars() {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-[-6rem] z-0 overflow-hidden rounded-[40px]" aria-hidden="true">
+        <div className="page-light-pillar page-light-pillar-primary absolute left-[10%] top-[-18%] h-[680px] w-44 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(79,70,229,0.10)_12%,rgba(129,140,248,0.30)_42%,rgba(196,181,253,0.18)_70%,transparent_100%)] blur-3xl" />
+        <div className="page-light-pillar page-light-pillar-secondary absolute right-[10%] top-[-20%] h-[720px] w-52 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(196,181,253,0.12)_16%,rgba(129,140,248,0.26)_46%,rgba(79,70,229,0.14)_74%,transparent_100%)] blur-3xl" />
+      </div>
+      <style jsx>{`
+        .page-light-pillar {
+          opacity: 0.82;
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
+        }
+        .page-light-pillar-primary {
+          animation: page-light-pillar-primary 34s ease-in-out infinite alternate;
+        }
+        .page-light-pillar-secondary {
+          animation: page-light-pillar-secondary 38s ease-in-out infinite alternate;
+        }
+        @keyframes page-light-pillar-primary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(22px, 26px, 0) scaleY(1.07); }
+        }
+        @keyframes page-light-pillar-secondary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(-24px, 30px, 0) scaleY(1.06); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .page-light-pillar {
+            animation: none;
+            will-change: auto;
+          }
+        }
+      `}</style>
+    </>
   );
 }

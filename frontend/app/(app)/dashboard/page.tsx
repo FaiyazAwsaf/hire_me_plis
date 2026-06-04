@@ -35,12 +35,13 @@ export default function DashboardPage() {
   return (
     <div className="relative isolate mx-auto max-w-5xl animate-in fade-in duration-200 text-left">
       <div className="pointer-events-none absolute inset-[-7rem] z-0 overflow-hidden rounded-[40px]" aria-hidden="true">
-        <div className="dashboard-aurora dashboard-aurora-blue absolute -right-12 top-0 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(125,211,252,0.75),rgba(147,197,253,0.56)_42%,transparent_70%)] blur-3xl" />
-        <div className="dashboard-aurora dashboard-aurora-violet absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(196,181,253,0.82),rgba(221,214,254,0.62)_45%,transparent_72%)] blur-3xl" />
-        <div className="dashboard-aurora dashboard-aurora-slate absolute -bottom-16 -left-16 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(226,232,240,0.86),rgba(186,230,253,0.62)_48%,transparent_72%)] blur-3xl" />
+        <div className="dashboard-light-pillar dashboard-light-pillar-primary absolute left-[12%] top-[-18%] h-[760px] w-48 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(79,70,229,0.10)_12%,rgba(129,140,248,0.34)_42%,rgba(196,181,253,0.20)_70%,transparent_100%)] blur-3xl" />
+        <div className="dashboard-light-pillar dashboard-light-pillar-secondary absolute left-[48%] top-[-22%] h-[820px] w-56 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(196,181,253,0.12)_16%,rgba(129,140,248,0.30)_46%,rgba(79,70,229,0.16)_74%,transparent_100%)] blur-3xl" />
+        <div className="dashboard-light-pillar dashboard-light-pillar-tertiary absolute right-[8%] top-[-16%] h-[720px] w-44 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(129,140,248,0.11)_14%,rgba(196,181,253,0.28)_50%,rgba(79,70,229,0.12)_78%,transparent_100%)] blur-3xl" />
+        <div className="absolute inset-x-12 top-24 h-72 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(196,181,253,0.24),rgba(129,140,248,0.10)_42%,transparent_70%)] blur-3xl" />
       </div>
 
-      <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/35 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6">
+      <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/38 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
       
       {/* HEADER SECTION */}
       <div className="flex flex-col gap-1 pb-2">
@@ -56,7 +57,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* --- TOP LEFT: METRICS GRID CONTAINER --- */}
-        <div className="bg-neutral-50/60 border border-neutral-200/60 rounded-2xl p-5 grid grid-cols-2 gap-4 h-[280px]">
+        <div className="grid h-[280px] grid-cols-2 gap-4 rounded-2xl border border-white/60 bg-white/42 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           <MiniStatCard 
             title="Applications" 
             value={WEEKLY_STATS_MOCK.applicationsSent.toString()} 
@@ -91,11 +92,11 @@ export default function DashboardPage() {
         </div>
 
         {/* --- TOP RIGHT: AI NUDGE FEED PANEL (EXCHANGED) --- */}
-        <Card className="rounded-2xl border border-neutral-200/80 bg-white shadow-sm overflow-hidden flex flex-col justify-between h-[280px]">
+        <Card className="flex h-[280px] flex-col justify-between overflow-hidden rounded-2xl border border-white/60 bg-white/58 shadow-[0_18px_55px_rgba(15,23,42,0.09)] backdrop-blur-xl">
           <CardHeader className="pb-3 pt-5 px-5">
             <div className="flex items-center gap-2">
-              <div className="p-1 bg-neutral-100 rounded-md">
-                <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500/10" />
+              <div className="rounded-md border border-white/60 bg-white/55 p-1 shadow-sm">
+                <Sparkles className="h-4 w-4 text-[#4F46E5] fill-[#818CF8]/10" />
               </div>
               <CardTitle className="text-sm font-bold text-neutral-900">AI Nudge System</CardTitle>
             </div>
@@ -104,7 +105,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-5 pb-5 flex-1 flex items-center justify-center">
-            <div className="w-full h-full flex flex-col items-center justify-center text-center border border-dashed border-neutral-200 rounded-xl bg-neutral-50/50 p-4">
+            <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-white/60 bg-white/38 p-4 text-center shadow-inner">
               <p className="text-xs font-bold text-neutral-700">No warnings flags triggered</p>
               <p className="text-[11px] text-neutral-400 max-w-xs mt-1">
                 Expand your core index metrics to unlock predictive semantic tracking signals.
@@ -115,11 +116,11 @@ export default function DashboardPage() {
 
         {/* --- BOTTOM LEFT: KANBAN BOARD PREVIEW PANEL (EXCHANGED) --- */}
         <Link href="/tracker?view=kanban" className="group block h-[340px]">
-          <Card className="bg-white border border-neutral-200/80 rounded-2xl shadow-sm hover:border-neutral-400 hover:shadow transition-all duration-200 flex flex-col justify-between h-full overflow-hidden">
+          <Card className="flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/60 bg-white/58 shadow-[0_18px_55px_rgba(15,23,42,0.09)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/68 hover:shadow-[0_24px_65px_rgba(15,23,42,0.13)]">
             <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0">
               <div className="flex items-center gap-2">
-                <div className="p-1 bg-neutral-100 rounded-md">
-                  <KanbanSquare className="h-4 w-4 text-blue-500 shrink-0" />
+                <div className="rounded-md border border-white/60 bg-white/55 p-1 shadow-sm">
+                  <KanbanSquare className="h-4 w-4 text-[#4F46E5] shrink-0" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-bold text-neutral-900">Kanban Board</CardTitle>
@@ -129,7 +130,7 @@ export default function DashboardPage() {
               <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </CardHeader>
             <CardContent className="px-5 pb-5 flex-1 flex flex-col justify-center">
-              <div className="grid grid-cols-4 gap-2 text-center bg-neutral-50/70 p-4 border border-neutral-200/50 rounded-xl">
+              <div className="grid grid-cols-4 gap-2 rounded-xl border border-white/60 bg-white/42 p-4 text-center shadow-inner">
                 <div className="space-y-0.5">
                   <div className="text-base font-mono font-black text-neutral-800">{TRACKER_PREVIEW_MOCK.kanbanStagesCount.applied}</div>
                   <div className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold">Applied</div>
@@ -153,16 +154,16 @@ export default function DashboardPage() {
 
         {/* --- BOTTOM RIGHT: PRETTY SCROLLABLE CALENDAR PANEL --- */}
         <Link href="/tracker?view=calendar" className="group block h-[340px]">
-          <Card className="bg-white border border-neutral-200/80 rounded-2xl shadow-sm hover:border-neutral-400 hover:shadow transition-all duration-200 flex flex-col h-full overflow-hidden">
+          <Card className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/58 shadow-[0_18px_55px_rgba(15,23,42,0.09)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/68 hover:shadow-[0_24px_65px_rgba(15,23,42,0.13)]">
             <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="p-1 bg-neutral-100 rounded-md">
-                  <CalendarDays className="h-4 w-4 text-indigo-500 shrink-0" />
+                <div className="rounded-md border border-white/60 bg-white/55 p-1 shadow-sm">
+                  <CalendarDays className="h-4 w-4 text-[#4F46E5] shrink-0" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-sm font-bold text-neutral-900">Calendar & Agenda</CardTitle>
-                    <span className="text-[10px] font-mono font-bold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">June 2026</span>
+                    <span className="rounded border border-white/60 bg-white/55 px-1.5 py-0.5 font-mono text-[10px] font-bold text-neutral-600 shadow-sm">June 2026</span>
                   </div>
                   <CardDescription className="text-[11px] text-neutral-400">Scroll layout showing due parameters</CardDescription>
                 </div>
@@ -174,7 +175,7 @@ export default function DashboardPage() {
             <CardContent className="px-5 pb-5 overflow-y-auto flex-1 pr-3 mr-1 space-y-4 scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-track-transparent hover:scrollbar-thumb-neutral-300 transition-colors">
               <div>
                 {/* Day Titles */}
-                <div className="grid grid-cols-7 gap-1.5 text-center text-[9px] font-black uppercase text-neutral-400 mb-2 tracking-wider sticky top-0 bg-white pt-1 pb-1 z-10">
+                <div className="sticky top-0 z-10 mb-2 grid grid-cols-7 gap-1.5 bg-white/75 pt-1 pb-1 text-center text-[9px] font-black uppercase tracking-wider text-neutral-400 backdrop-blur">
                   <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
                 </div>
                 
@@ -222,53 +223,53 @@ export default function DashboardPage() {
       </div>
       </div>
       <style jsx>{`
-        .dashboard-aurora {
-          opacity: 0.84;
+        .dashboard-light-pillar {
+          opacity: 0.88;
           transform: translate3d(0, 0, 0);
           will-change: transform;
         }
 
-        .dashboard-aurora-blue {
-          animation: dashboard-aurora-blue 34s ease-in-out infinite alternate;
+        .dashboard-light-pillar-primary {
+          animation: dashboard-light-pillar-primary 32s ease-in-out infinite alternate;
         }
 
-        .dashboard-aurora-violet {
-          animation: dashboard-aurora-violet 42s ease-in-out infinite alternate;
+        .dashboard-light-pillar-secondary {
+          animation: dashboard-light-pillar-secondary 38s ease-in-out infinite alternate;
         }
 
-        .dashboard-aurora-slate {
-          animation: dashboard-aurora-slate 38s ease-in-out infinite alternate;
+        .dashboard-light-pillar-tertiary {
+          animation: dashboard-light-pillar-tertiary 34s ease-in-out infinite alternate;
         }
 
-        @keyframes dashboard-aurora-blue {
+        @keyframes dashboard-light-pillar-primary {
           from {
-            transform: translate3d(0, 0, 0) scale(1);
+            transform: translate3d(0, 0, 0) scaleY(1);
           }
           to {
-            transform: translate3d(-38px, 32px, 0) scale(1.08);
+            transform: translate3d(24px, 28px, 0) scaleY(1.08);
           }
         }
 
-        @keyframes dashboard-aurora-violet {
+        @keyframes dashboard-light-pillar-secondary {
           from {
-            transform: translate3d(-50%, -50%, 0) scale(1);
+            transform: translate3d(0, 0, 0) scaleY(1);
           }
           to {
-            transform: translate3d(calc(-50% + 28px), calc(-50% - 22px), 0) scale(1.08);
+            transform: translate3d(-26px, 34px, 0) scaleY(1.06);
           }
         }
 
-        @keyframes dashboard-aurora-slate {
+        @keyframes dashboard-light-pillar-tertiary {
           from {
-            transform: translate3d(0, 0, 0) scale(1);
+            transform: translate3d(0, 0, 0) scaleY(1);
           }
           to {
-            transform: translate3d(26px, 20px, 0) scale(1.04);
+            transform: translate3d(-20px, 24px, 0) scaleY(1.05);
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .dashboard-aurora {
+          .dashboard-light-pillar {
             animation: none;
             will-change: auto;
           }
@@ -289,12 +290,12 @@ interface MiniStatCardProps {
 
 function MiniStatCard({ title, value, badge, icon, description }: MiniStatCardProps) {
   return (
-    <Card className="bg-white border border-neutral-200/80 rounded-xl shadow-sm flex flex-col justify-between p-3.5 space-y-2">
+    <Card className="flex flex-col justify-between space-y-2 rounded-xl border border-white/60 bg-white/58 p-3.5 shadow-[0_12px_35px_rgba(15,23,42,0.07)] backdrop-blur-xl">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-bold tracking-wider text-neutral-400 uppercase truncate">
           {title}
         </span>
-        <div className="p-1 bg-neutral-50 border border-neutral-100 rounded-md shrink-0">
+        <div className="shrink-0 rounded-md border border-white/60 bg-white/55 p-1 shadow-sm">
           {icon}
         </div>
       </div>
@@ -304,7 +305,7 @@ function MiniStatCard({ title, value, badge, icon, description }: MiniStatCardPr
           <span className="text-lg font-black text-neutral-900 tracking-tight">
             {value}
           </span>
-          <Badge variant="secondary" className="text-[8px] uppercase font-mono font-bold py-0 px-1 tracking-wider text-neutral-500 bg-neutral-100 border-none rounded">
+          <Badge variant="secondary" className="rounded border border-[#C4B5FD]/35 bg-white/55 px-1 py-0 font-mono text-[8px] font-bold uppercase tracking-wider text-[#4F46E5] shadow-sm">
             {badge}
           </Badge>
         </div>

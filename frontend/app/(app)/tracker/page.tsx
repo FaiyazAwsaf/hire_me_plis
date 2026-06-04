@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +52,9 @@ function TrackerContent() {
   const searchParams = useSearchParams();
   const urlView = searchParams.get("view") as "kanban" | "calendar" | "goals" | null;
 
-  const [activeTab, setActiveTab] = useState<"kanban" | "calendar" | "goals">("kanban");
+  const [activeTab, setActiveTab] = useState<"kanban" | "calendar" | "goals">(
+    urlView === "kanban" || urlView === "calendar" || urlView === "goals" ? urlView : "kanban"
+  );
   const formRef = useRef<HTMLDivElement>(null);
   
   const [applications, setApplications] = useState<JobApplication[]>([
@@ -81,17 +83,11 @@ function TrackerContent() {
   const [newTaskDay, setNewTaskDay] = useState<number>(CURRENT_DAY_JUNE_2026);
   const [newTaskCat, setNewTaskCat] = useState<string>("learning");
 
-  useEffect(() => {
-    if (urlView === "kanban" || urlView === "calendar" || urlView === "goals") {
-      setActiveTab(urlView);
-    }
-  }, [urlView]);
-
   const moveApplication = (id: string, direction: "next" | "prev") => {
     setApplications(prev => prev.map(app => {
       if (app.id !== id) return app;
       const currentIndex = COLUMNS.findIndex(c => c.id === app.stage);
-      let nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
+      const nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
       if (nextIndex >= 0 && nextIndex < COLUMNS.length) {
         return { ...app, stage: COLUMNS[nextIndex].id };
       }
@@ -197,12 +193,14 @@ function TrackerContent() {
   });
 
   return (
-    <div className="space-y-8 text-left max-w-6xl mx-auto p-6 animate-in fade-in duration-200">
+    <div className="relative isolate mx-auto max-w-6xl animate-in fade-in duration-200 text-left">
+      <PageLightPillars />
+      <div className="relative z-10 space-y-8 rounded-[28px] border border-white/55 bg-white/38 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
       
       {/* Dynamic Header Notification Banner */}
       {activeReminders.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm animate-in fade-in">
-          <div className="p-2 bg-amber-100 text-amber-800 rounded-xl shrink-0 mt-0.5">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200/70 bg-amber-50/55 p-4 shadow-[0_14px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl animate-in fade-in">
+          <div className="mt-0.5 shrink-0 rounded-xl border border-white/60 bg-white/55 p-2 text-amber-800 shadow-sm">
             <Bell className="h-4 w-4 fill-amber-600/10" />
           </div>
           <div className="flex-1 min-w-0">
@@ -222,7 +220,7 @@ function TrackerContent() {
       )}
 
       {/* Hero Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+      <div className="flex flex-col justify-between gap-4 border-b border-white/60 pb-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-neutral-900">Career Delivery Hub</h1>
           <p className="text-xs text-muted-foreground">Manage ongoing board applications, milestone target settings, and task deadlines.</p>
@@ -230,13 +228,13 @@ function TrackerContent() {
         
         <div className="flex items-center gap-2">
           {activeTab === "kanban" && (
-            <Button onClick={() => setShowAppForm(!showAppForm)} size="sm" className="bg-black hover:bg-neutral-800 text-white rounded-xl h-9 px-4 font-semibold text-xs flex items-center gap-1.5 shadow-sm">
+            <Button onClick={() => setShowAppForm(!showAppForm)} size="sm" className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800">
               <Plus className="h-4 w-4 shrink-0" />
               <span>{showAppForm ? "Close Form" : "Add application"}</span>
             </Button>
           )}
           {(activeTab === "calendar" || activeTab === "goals") && (
-            <Button onClick={() => { setShowTaskForm(!showTaskForm); setNewTaskDay(CURRENT_DAY_JUNE_2026); setShowInlineCustomInput(false); setCustomCategoryInput(""); }} size="sm" className="bg-black hover:bg-neutral-800 text-white rounded-xl h-9 px-4 font-semibold text-xs flex items-center gap-1.5 shadow-sm">
+            <Button onClick={() => { setShowTaskForm(!showTaskForm); setNewTaskDay(CURRENT_DAY_JUNE_2026); setShowInlineCustomInput(false); setCustomCategoryInput(""); }} size="sm" className="flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800">
               <Plus className="h-4 w-4 shrink-0" />
               <span>{showTaskForm ? "Close" : "Add Goal"}</span>
             </Button>
@@ -247,17 +245,17 @@ function TrackerContent() {
       {/* Dynamic Input Forms Wrapper */}
       <div ref={formRef}>
         {showAppForm && (
-          <Card className="p-4 border-neutral-300 rounded-2xl bg-neutral-50/50 animate-in slide-in-from-top-2 duration-200 mb-4">
+          <Card className="mb-4 rounded-2xl border border-white/60 bg-white/50 p-4 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
             <form onSubmit={addApplication} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-neutral-500">Role Title</label>
-                <input value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="e.g. Frontend Developer" className="w-full bg-white border rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-neutral-400" required />
+                <input value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="e.g. Frontend Developer" className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-1.5 text-xs font-medium focus:outline-[#818CF8]" required />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-neutral-500">Company Name</label>
-                <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="e.g. Stripe" className="w-full bg-white border rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-neutral-400" required />
+                <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="e.g. Stripe" className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-1.5 text-xs font-medium focus:outline-[#818CF8]" required />
               </div>
-              <Button type="submit" size="sm" className="bg-neutral-900 text-white hover:bg-neutral-800 rounded-xl h-9 text-xs font-bold">
+              <Button type="submit" size="sm" className="h-9 rounded-xl bg-slate-900 text-xs font-bold text-white hover:bg-slate-800">
                 Add Application
               </Button>
             </form>
@@ -265,7 +263,7 @@ function TrackerContent() {
         )}
 
         {showTaskForm && (
-          <Card className="p-5 border-neutral-300 rounded-2xl bg-amber-50/10 border-dashed animate-in slide-in-from-top-2 duration-200 mb-4">
+          <Card className="mb-4 rounded-2xl border border-white/60 bg-white/50 p-5 shadow-[0_16px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
             <form onSubmit={addUserTask} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="space-y-1 md:col-span-2">
@@ -308,16 +306,16 @@ function TrackerContent() {
       </div>
 
       {/* Tabs Layout Navigation Sub-Navbar */}
-      <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl max-w-md">
-        <button onClick={() => setActiveTab("kanban")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all", activeTab === "kanban" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-900")}>
+      <div className="flex max-w-md gap-1 rounded-xl border border-white/60 bg-white/45 p-1 shadow-sm backdrop-blur-xl">
+        <button onClick={() => setActiveTab("kanban")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all", activeTab === "kanban" ? "bg-white/75 text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-900")}>
           <KanbanSquare className="h-3.5 w-3.5" />
           <span>Applications</span>
         </button>
-        <button onClick={() => setActiveTab("calendar")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all", activeTab === "calendar" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-900")}>
+        <button onClick={() => setActiveTab("calendar")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all", activeTab === "calendar" ? "bg-white/75 text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-900")}>
           <CalendarDays className="h-3.5 w-3.5" />
           <span>Calendar View</span>
         </button>
-        <button onClick={() => setActiveTab("goals")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all", activeTab === "goals" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-900")}>
+        <button onClick={() => setActiveTab("goals")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all", activeTab === "goals" ? "bg-white/75 text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-900")}>
           <Target className="h-3.5 w-3.5" />
           <span>Goals Engine</span>
           <Badge className="ml-0.5 h-4 min-w-4 p-0 flex items-center justify-center text-[9px] bg-neutral-900 text-white font-black border-none">
@@ -335,7 +333,7 @@ function TrackerContent() {
             {COLUMNS.map((col) => {
               const columnApps = applications.filter(app => app.stage === col.id);
               return (
-                <div key={col.id} className="flex flex-col gap-3 min-w-[270px] bg-neutral-50/50 border p-3 rounded-2xl flex-1">
+                <div key={col.id} className="flex min-w-[270px] flex-1 flex-col gap-3 rounded-2xl border border-white/60 bg-white/42 p-3 shadow-[0_14px_40px_rgba(15,23,42,0.07)] backdrop-blur-xl">
                   <div className="flex items-center gap-2 px-1">
                     <span className={`h-2 w-2 rounded-full ${col.color}`} />
                     <span className="font-bold text-xs text-neutral-700 uppercase tracking-wide">{col.label}</span>
@@ -344,9 +342,9 @@ function TrackerContent() {
                     </Badge>
                   </div>
 
-                  <div className="flex-1 min-h-[380px] rounded-xl border border-dashed border-neutral-200 bg-white/70 p-2 space-y-2">
+                  <div className="min-h-[380px] flex-1 space-y-2 rounded-xl border border-white/60 bg-white/40 p-2 shadow-inner">
                     {columnApps.map((app) => (
-                      <Card key={app.id} className="bg-white border border-neutral-200 rounded-xl shadow-sm p-3 space-y-3 animate-in fade-in duration-150">
+                      <Card key={app.id} className="space-y-3 rounded-xl border border-white/60 bg-white/62 p-3 shadow-sm backdrop-blur-xl animate-in fade-in duration-150">
                         <div>
                           <h4 className="text-xs font-black text-neutral-900">{app.role}</h4>
                           <p className="text-[11px] text-neutral-500 font-medium">{app.company}</p>
@@ -372,7 +370,7 @@ function TrackerContent() {
         {/* VIEW 2: CALENDAR VIEW */}
         {activeTab === "calendar" && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <Card className="lg:col-span-3 rounded-2xl border bg-white p-5 shadow-sm">
+            <Card className="rounded-2xl border border-white/60 bg-white/58 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.09)] backdrop-blur-xl lg:col-span-3">
               <div className="flex items-center justify-between mb-4 border-b pb-3">
                 <span className="text-sm font-black text-neutral-900">June 2026</span>
                 <p className="text-[10px] text-neutral-400 font-medium">✨ Click any day to add To-Do.</p>
@@ -430,7 +428,7 @@ function TrackerContent() {
                     const isUrgent = daysAway >= 0 && daysAway <= 3 && t.status === "todo";
                     
                     return (
-                      <div key={t.id} className={cn("p-2.5 border rounded-xl flex justify-between gap-3 items-start transition-all", t.status === "completed" ? "bg-neutral-50/50 border-neutral-100 opacity-70" : isUrgent ? "border-amber-200 bg-amber-50/20" : "border-neutral-100 bg-neutral-50/30")}>
+                      <div key={t.id} className={cn("flex items-start justify-between gap-3 rounded-xl border p-2.5 transition-all", t.status === "completed" ? "border-white/50 bg-white/35 opacity-70" : isUrgent ? "border-amber-200/70 bg-amber-50/35" : "border-white/55 bg-white/38")}>
                         <div className="space-y-1 flex-1 min-w-0">
                           <h4 className={cn("text-xs font-bold leading-tight truncate", t.status === "completed" ? "line-through text-neutral-400 font-normal" : "text-neutral-800")}>{t.text}</h4>
                           <div className="flex flex-wrap gap-1.5 items-center mt-1">
@@ -466,8 +464,8 @@ function TrackerContent() {
         {/* VIEW 3: GOALS CHECKLIST MODULE */}
         {activeTab === "goals" && (
           <div className="max-w-3xl mx-auto space-y-4">
-            <Card className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-              <CardHeader className="pb-3 border-b bg-neutral-50/40">
+            <Card className="overflow-hidden rounded-2xl border border-white/60 bg-white/58 shadow-[0_18px_55px_rgba(15,23,42,0.09)] backdrop-blur-xl">
+              <CardHeader className="border-b border-white/60 bg-white/35 pb-3">
                 <CardTitle className="text-sm font-bold text-neutral-900">Sprint Directives Checklist</CardTitle>
                 <CardDescription className="text-xs"></CardDescription>
               </CardHeader>
@@ -517,6 +515,45 @@ function TrackerContent() {
 
       </div>
     </div>
+    </div>
+  );
+}
+
+function PageLightPillars() {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-[-6rem] z-0 overflow-hidden rounded-[40px]" aria-hidden="true">
+        <div className="page-light-pillar page-light-pillar-primary absolute left-[9%] top-[-18%] h-[720px] w-48 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(79,70,229,0.10)_12%,rgba(129,140,248,0.30)_42%,rgba(196,181,253,0.18)_70%,transparent_100%)] blur-3xl" />
+        <div className="page-light-pillar page-light-pillar-secondary absolute right-[10%] top-[-20%] h-[760px] w-56 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(196,181,253,0.12)_16%,rgba(129,140,248,0.26)_46%,rgba(79,70,229,0.14)_74%,transparent_100%)] blur-3xl" />
+      </div>
+      <style jsx>{`
+        .page-light-pillar {
+          opacity: 0.82;
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
+        }
+        .page-light-pillar-primary {
+          animation: page-light-pillar-primary 34s ease-in-out infinite alternate;
+        }
+        .page-light-pillar-secondary {
+          animation: page-light-pillar-secondary 38s ease-in-out infinite alternate;
+        }
+        @keyframes page-light-pillar-primary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(22px, 26px, 0) scaleY(1.07); }
+        }
+        @keyframes page-light-pillar-secondary {
+          from { transform: translate3d(0, 0, 0) scaleY(1); }
+          to { transform: translate3d(-24px, 30px, 0) scaleY(1.06); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .page-light-pillar {
+            animation: none;
+            will-change: auto;
+          }
+        }
+      `}</style>
+    </>
   );
 }
 
