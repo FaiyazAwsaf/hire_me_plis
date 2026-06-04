@@ -1,23 +1,34 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { 
   Send, 
   Cpu, 
   Milestone, 
   Flame, 
   Sparkles, 
-  PieChart 
+  KanbanSquare,
+  CalendarDays,
+  ArrowUpRight
 } from "lucide-react";
 
-// Mock weekly stats tracking matching data expectations
 const WEEKLY_STATS_MOCK = {
   applicationsSent: 6,
   skillsAdded: 4,
   roadmapCompletePercentage: 72,
   streakDays: 5,
+};
+
+const TRACKER_PREVIEW_MOCK = {
+  kanbanStagesCount: { applied: 1, interviewing: 0, offer: 0, rejected: 0 },
+  upcomingDeadlines: [
+    { text: "Finish DSA course", date: "June 5", category: "learning" },
+    { text: "Update resume layout", date: "June 7", category: "cv" }
+  ],
 };
 
 export default function DashboardPage() {
@@ -31,98 +42,182 @@ export default function DashboardPage() {
 
       <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/35 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6">
       
-      {/* --- DASHBOARD HEADER --- */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-black tracking-tight text-neutral-950">Progress Dashboard</h1>
-        <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-          Track your real-time application metrics, skill acquisition logs, and active streaks.
+      {/* HEADER SECTION */}
+      <div className="flex flex-col gap-1 pb-2">
+        <h1 className="text-2xl font-black tracking-tight text-neutral-900">
+          Progress Dashboard
+        </h1>
+        <p className="text-xs text-neutral-500">
+          Overview of your active job application workflows, daily milestones, and automated insights.
         </p>
       </div>
 
-      {/* --- STAT CARDS GRID: WEEKLY STATS METRICS --- */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* MAIN LAYOUT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        <StatCard 
-          title="Applications Sent" 
-          value={WEEKLY_STATS_MOCK.applicationsSent.toString()} 
-          badge="This Week" 
-          icon={<Send className="h-4 w-4 text-neutral-500" />}
-          description="Target benchmark: 10 sent"
-        />
-        
-        <StatCard 
-          title="Skills Added" 
-          value={`+${WEEKLY_STATS_MOCK.skillsAdded}`} 
-          badge="Verified" 
-          icon={<Cpu className="h-4 w-4 text-emerald-600" />}
-          description="Extracted from your CV delta"
-        />
-        
-        <StatCard 
-          title="Roadmap Progress" 
-          value={`${WEEKLY_STATS_MOCK.roadmapCompletePercentage}%`} 
-          badge="Complete" 
-          icon={<Milestone className="h-4 w-4 text-blue-600" />}
-          description="Pillar 3 target: 100%"
-        />
-        
-        <StatCard 
-          title="Streak Counter" 
-          value={`${WEEKLY_STATS_MOCK.streakDays} Days`} 
-          badge="Active" 
-          icon={<Flame className="h-4 w-4 text-red-500 fill-red-500/10 animate-pulse" />}
-          description="Keep applying to stay warm"
-        />
+        {/* --- TOP LEFT: METRICS GRID CONTAINER --- */}
+        <div className="bg-neutral-50/60 border border-neutral-200/60 rounded-2xl p-5 grid grid-cols-2 gap-4 h-[280px]">
+          <MiniStatCard 
+            title="Applications" 
+            value={WEEKLY_STATS_MOCK.applicationsSent.toString()} 
+            badge="this week" 
+            icon={<Send className="h-3.5 w-3.5 text-neutral-500" />}
+            description="Target: 10 sent"
+          />
+          
+          <MiniStatCard 
+            title="Skills Added" 
+            value={`+${WEEKLY_STATS_MOCK.skillsAdded}`} 
+            badge="verified" 
+            icon={<Cpu className="h-3.5 w-3.5 text-emerald-600" />}
+            description="Parsed profile updates"
+          />
+          
+          <MiniStatCard 
+            title="Roadmap" 
+            value={`${WEEKLY_STATS_MOCK.roadmapCompletePercentage}%`} 
+            badge="progress" 
+            icon={<Milestone className="h-3.5 w-3.5 text-blue-600" />}
+            description="Milestone 3 target"
+          />
+          
+          <MiniStatCard 
+            title="Streak" 
+            value={`${WEEKLY_STATS_MOCK.streakDays} Days`} 
+            badge="active" 
+            icon={<Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500/10" />}
+            description="Actions logged daily"
+          />
+        </div>
 
-      </div>
-
-      {/* --- WORKSPACE SUB-SECTIONS --- */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        
-        {/* Application Status Metric Block */}
-        <Card className="overflow-hidden rounded-2xl border border-white/65 bg-white/55 shadow-[0_18px_55px_rgba(15,23,42,0.10)] backdrop-blur-xl">
-          <CardHeader className="pb-3">
+        {/* --- TOP RIGHT: AI NUDGE FEED PANEL (EXCHANGED) --- */}
+        <Card className="rounded-2xl border border-neutral-200/80 bg-white shadow-sm overflow-hidden flex flex-col justify-between h-[280px]">
+          <CardHeader className="pb-3 pt-5 px-5">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/65 shadow-sm">
-                <PieChart className="h-4 w-4 text-slate-600" />
+              <div className="p-1 bg-neutral-100 rounded-md">
+                <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500/10" />
               </div>
-              <CardTitle className="text-sm font-bold text-neutral-950">Applications by Status</CardTitle>
+              <CardTitle className="text-sm font-bold text-neutral-900">AI Nudge System</CardTitle>
             </div>
-            <CardDescription className="text-xs text-neutral-500">Visual tracking layout graph data pipeline nodes.</CardDescription>
+            <CardDescription className="text-xs text-neutral-400">
+              Automated notifications evaluated against active workspace speeds.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="m-4 mt-0 flex h-40 items-center justify-center rounded-2xl border border-white/70 bg-slate-100/45 shadow-inner">
-            <div className="text-center">
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/65 shadow-sm">
-                <PieChart className="h-5 w-5 text-slate-400" />
-              </div>
-              <span className="text-xs font-semibold tracking-tight text-neutral-500">
-                Chart pipeline interface rendering in Pillar 4
-              </span>
+          <CardContent className="px-5 pb-5 flex-1 flex items-center justify-center">
+            <div className="w-full h-full flex flex-col items-center justify-center text-center border border-dashed border-neutral-200 rounded-xl bg-neutral-50/50 p-4">
+              <p className="text-xs font-bold text-neutral-700">No warnings flags triggered</p>
+              <p className="text-[11px] text-neutral-400 max-w-xs mt-1">
+                Expand your core index metrics to unlock predictive semantic tracking signals.
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* AI Agent Assistant Nudges Feed */}
-        <Card className="overflow-hidden rounded-2xl border border-white/65 bg-white/55 shadow-[0_18px_55px_rgba(15,23,42,0.10)] backdrop-blur-xl">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-red-50/70 shadow-sm">
-                <Sparkles className="h-4 w-4 text-red-500" />
+        {/* --- BOTTOM LEFT: KANBAN BOARD PREVIEW PANEL (EXCHANGED) --- */}
+        <Link href="/tracker?view=kanban" className="group block h-[340px]">
+          <Card className="bg-white border border-neutral-200/80 rounded-2xl shadow-sm hover:border-neutral-400 hover:shadow transition-all duration-200 flex flex-col justify-between h-full overflow-hidden">
+            <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-neutral-100 rounded-md">
+                  <KanbanSquare className="h-4 w-4 text-blue-500 shrink-0" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-bold text-neutral-900">Kanban Board</CardTitle>
+                  <CardDescription className="text-[11px] text-neutral-400">Pipeline mapping active roles</CardDescription>
+                </div>
               </div>
-              <CardTitle className="text-sm font-bold text-neutral-950">AI Co-Pilot Nudges</CardTitle>
-            </div>
-            <CardDescription className="text-xs text-neutral-500">Real-time prompt warnings evaluated against application pace.</CardDescription>
-          </CardHeader>
-          <CardContent className="m-4 mt-0 flex h-40 flex-col items-center justify-center rounded-2xl border border-white/70 bg-red-50/25 p-4 text-center shadow-inner">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/65 shadow-sm">
-              <Sparkles className="h-5 w-5 text-red-400" />
-            </div>
-            <p className="text-xs font-bold text-neutral-800">No agent warning flags triggered yet</p>
-            <p className="mt-1 max-w-xs text-[11px] leading-5 text-neutral-500">
-              Build your baseline index map profile inside CV Builder to open semantic monitoring.
-            </p>
-          </CardContent>
-        </Card>
+              <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </CardHeader>
+            <CardContent className="px-5 pb-5 flex-1 flex flex-col justify-center">
+              <div className="grid grid-cols-4 gap-2 text-center bg-neutral-50/70 p-4 border border-neutral-200/50 rounded-xl">
+                <div className="space-y-0.5">
+                  <div className="text-base font-mono font-black text-neutral-800">{TRACKER_PREVIEW_MOCK.kanbanStagesCount.applied}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold">Applied</div>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-base font-mono font-medium text-neutral-400">{TRACKER_PREVIEW_MOCK.kanbanStagesCount.interviewing}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold">Interview</div>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-base font-mono font-medium text-neutral-400">{TRACKER_PREVIEW_MOCK.kanbanStagesCount.offer}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold">Offer</div>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-base font-mono font-medium text-neutral-400">{TRACKER_PREVIEW_MOCK.kanbanStagesCount.rejected}</div>
+                  <div className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold">Rejected</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* --- BOTTOM RIGHT: PRETTY SCROLLABLE CALENDAR PANEL --- */}
+        <Link href="/tracker?view=calendar" className="group block h-[340px]">
+          <Card className="bg-white border border-neutral-200/80 rounded-2xl shadow-sm hover:border-neutral-400 hover:shadow transition-all duration-200 flex flex-col h-full overflow-hidden">
+            <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-neutral-100 rounded-md">
+                  <CalendarDays className="h-4 w-4 text-indigo-500 shrink-0" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-bold text-neutral-900">Calendar & Agenda</CardTitle>
+                    <span className="text-[10px] font-mono font-bold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">June 2026</span>
+                  </div>
+                  <CardDescription className="text-[11px] text-neutral-400">Scroll layout showing due parameters</CardDescription>
+                </div>
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </CardHeader>
+            
+            {/* Scrollable Container Box with Elegant Scroll Styling */}
+            <CardContent className="px-5 pb-5 overflow-y-auto flex-1 pr-3 mr-1 space-y-4 scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-track-transparent hover:scrollbar-thumb-neutral-300 transition-colors">
+              <div>
+                {/* Day Titles */}
+                <div className="grid grid-cols-7 gap-1.5 text-center text-[9px] font-black uppercase text-neutral-400 mb-2 tracking-wider sticky top-0 bg-white pt-1 pb-1 z-10">
+                  <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+                </div>
+                
+                {/* Interactive Matrix Grid */}
+                <div className="grid grid-cols-7 gap-1.5">
+                  {Array.from({ length: 30 }, (_, i) => i + 1).map((day) => {
+                    const isDSA = day === 5;
+                    const isCV = day === 7;
+                    
+                    return (
+                      <div 
+                        key={day} 
+                        className={cn(
+                          "p-1.5 h-12 border rounded-xl text-[10px] font-bold flex flex-col justify-between transition-colors relative group/day overflow-hidden",
+                          isDSA ? 'border-blue-200 bg-blue-50/60 text-blue-700' : 
+                          isCV ? 'border-red-200 bg-red-50/60 text-red-600' : 
+                          'border-neutral-100 bg-neutral-50/30 text-neutral-700 hover:bg-neutral-50'
+                        )}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span>{day}</span>
+                          {isDSA && <span className="h-1 w-1 bg-blue-600 rounded-full block animate-pulse" />}
+                          {isCV && <span className="h-1 w-1 bg-red-500 rounded-full block animate-pulse" />}
+                        </div>
+
+                        {isDSA && (
+                          <span className="text-[7px] leading-tight text-blue-800 font-bold uppercase tracking-tight truncate block">
+                            DSA Due
+                          </span>
+                        )}
+                        {isCV && (
+                          <span className="text-[7px] leading-tight text-red-700 font-bold uppercase tracking-tight truncate block">
+                            CV Update
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
       </div>
       </div>
@@ -183,8 +278,8 @@ export default function DashboardPage() {
   );
 }
 
-{/* --- REUSABLE STRUCTURED STATCARD INTERFACE --- */}
-interface StatCardProps {
+{/* REUSABLE INTERNAL COMPACT MICRO-METRIC CARD */}
+interface MiniStatCardProps {
   title: string;
   value: string;
   badge: string;
@@ -192,37 +287,31 @@ interface StatCardProps {
   description: string;
 }
 
-function StatCard({ title, value, badge, icon, description }: StatCardProps) {
-  const badgeClass = {
-    "This Week": "border-slate-200/80 bg-slate-100/65 text-slate-700",
-    Verified: "border-emerald-200/80 bg-emerald-50/75 text-emerald-700",
-    Complete: "border-blue-200/80 bg-blue-50/75 text-blue-700",
-    Active: "border-orange-200/80 bg-orange-50/75 text-orange-700",
-  }[badge] ?? "border-slate-200/80 bg-slate-100/65 text-slate-700";
-
+function MiniStatCard({ title, value, badge, icon, description }: MiniStatCardProps) {
   return (
-    <Card className="group rounded-2xl border border-white/65 bg-white/55 shadow-[0_16px_45px_rgba(15,23,42,0.09)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:shadow-[0_22px_60px_rgba(15,23,42,0.13)]">
-      <CardHeader className="pb-2 pt-4 px-4 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-[11px] font-bold tracking-[0.08em] text-neutral-500 uppercase">
+    <Card className="bg-white border border-neutral-200/80 rounded-xl shadow-sm flex flex-col justify-between p-3.5 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-bold tracking-wider text-neutral-400 uppercase truncate">
           {title}
-        </CardTitle>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/70 bg-white/65 shadow-sm transition-all group-hover:bg-white/90 group-hover:shadow-md">
+        </span>
+        <div className="p-1 bg-neutral-50 border border-neutral-100 rounded-md shrink-0">
           {icon}
         </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 space-y-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-2xl font-black text-neutral-900 tracking-tight">
+      </div>
+      
+      <div className="space-y-0.5">
+        <div className="flex items-baseline justify-between gap-1.5">
+          <span className="text-lg font-black text-neutral-900 tracking-tight">
             {value}
           </span>
-          <Badge variant="secondary" className={`border px-2 py-0 text-[10px] font-bold uppercase tracking-[0.08em] shadow-sm backdrop-blur ${badgeClass}`}>
+          <Badge variant="secondary" className="text-[8px] uppercase font-mono font-bold py-0 px-1 tracking-wider text-neutral-500 bg-neutral-100 border-none rounded">
             {badge}
           </Badge>
         </div>
-        <p className="truncate text-[11px] font-medium text-neutral-500">
+        <p className="text-[10px] text-neutral-400 font-medium truncate">
           {description}
         </p>
-      </CardContent>
+      </div>
     </Card>
   );
 }

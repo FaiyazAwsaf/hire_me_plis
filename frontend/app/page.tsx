@@ -137,11 +137,21 @@ export default function Home() {
       className="relative w-full min-h-screen bg-white text-gray-900 overflow-x-hidden font-sans select-none text-left"
     >
       {/* --- HERO TRACKING CANVAS CONTAINER --- */}
-      <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
+      <div className="relative w-full h-screen overflow-hidden flex items-center justify-center bg-white">
+        
+        {/* --- SOFT PINK GRADIENT BACKGROUND LAYER --- */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Main soft pink mesh blend */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,241,242,0.8),rgba(255,255,255,1)_70%)]" />
+          
+          {/* Subtle accent soft glowing pink nodes */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-rose-100/40 rounded-full blur-3xl mix-blend-multiply animate-pulse duration-7000" />
+          <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-pink-50/60 rounded-full blur-3xl mix-blend-multiply animate-pulse duration-10000" />
+        </div>
+
         {/* --- HEADER NAVBAR --- */}
         <header className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-8 py-5 max-w-7xl left-1/2 -translate-x-1/2">
           <div className="flex items-center gap-12">
-            {/* Replaced Wellfound logo with CareerPilot */}
             <Link href="/" className="flex items-center text-2xl font-black tracking-tight text-black cursor-pointer">
               Hire Me Plis<span className="text-red-500 font-extrabold ml-0.5">:</span>
             </Link>
@@ -151,7 +161,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <Link 
               href="/login" 
-              className="px-5 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors inline-block"
+              className="px-5 py-2.5 text-sm font-medium border border-gray-200 bg-white/80 backdrop-blur-sm rounded-xl hover:bg-gray-50 transition-colors inline-block"
             >
               Log In
             </Link>
@@ -165,7 +175,7 @@ export default function Home() {
         </header>
 
         {/* --- BACKGROUND INTERACTIVE FLOATING TAGS LAYER --- */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none">
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-10">
           {TAGS_DATA.map((tag, index) => (
             <FloatingTag 
               key={index} 
@@ -179,8 +189,8 @@ export default function Home() {
         </div>
 
         {/* --- HERO CENTERPIECE CONTENT --- */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-          <div className="flex items-center bg-white/40 backdrop-blur-sm p-6 rounded-3xl border border-dashed border-red-400/80 px-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+          <div className="flex items-center bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-dashed border-red-300/60 px-10 shadow-[0_8px_32px_0_rgba(255,182,193,0.1)]">
             <h1 className="text-4xl md:text-6xl font-black text-black tracking-tight pointer-events-auto">
               Pilot Your Career
             </h1>
@@ -188,14 +198,14 @@ export default function Home() {
         </div>
 
         {/* Subtle scroll down indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-40 z-20">
           <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-400"></span>
           <div className="h-3 w-0.5 bg-neutral-300 rounded-full" />
         </div>
       </div>
 
       {/* --- LANDING SYSTEM FEATURES WORKSPACE WITH SOFT RADIAL GRADIENT --- */}
-      <section className="relative w-full bg-gradient-to-br from-white via-red-50/20 to-slate-50/50 py-24 z-20">
+      <section className="relative w-full bg-gradient-to-br from-white via-red-50/20 to-slate-50/50 py-24 z-30">
         <div className="max-w-4xl mx-auto px-6 space-y-6">
           <div className="pb-12 text-center space-y-2">
             <h2 className="text-3xl font-black tracking-tight text-black sm:text-4xl">System Ecosystem Layout</h2>
@@ -218,7 +228,7 @@ export default function Home() {
       </section>
 
       {/* --- FOOTER BANNER --- */}
-      <footer className="border-t border-neutral-100 py-12 text-center text-xs font-medium text-neutral-400 bg-neutral-50/50">
+      <footer className="border-t border-neutral-100 py-12 text-center text-xs font-medium text-neutral-400 bg-neutral-50/50 z-30 relative">
         &copy; 2026 Hire Me Plis. All core operational components deployed.
       </footer>
     </main>
