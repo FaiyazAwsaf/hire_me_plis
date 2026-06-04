@@ -1,3 +1,4 @@
+import logging
 import uuid
 from dataclasses import asdict
 
@@ -6,11 +7,16 @@ import httpx
 from app.ai.agents.job_hunter.state import RawJob
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 _JSEARCH_URL = "https://jsearch.p.rapidapi.com/search"
 
 
 async def search_jsearch(role: str, location: str) -> list[dict]:
     """Query JSearch RapidAPI (aggregates LinkedIn, Indeed, Glassdoor) via async httpx."""
+    if not settings.jsearch_rapidapi_key:
+        raise ValueError("JSearch API key not configured. Set JSEARCH_RAPIDAPI_KEY in .env")
+
     query = f"{role} in {location}" if location else role
     headers = {
         "X-RapidAPI-Key": settings.jsearch_rapidapi_key,
@@ -18,13 +24,18 @@ async def search_jsearch(role: str, location: str) -> list[dict]:
     }
     params = {"query": query, "page": "1", "num_pages": "1"}
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(_JSEARCH_URL, headers=headers, params=params)
-        resp.raise_for_status()
-        data = resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(_JSEARCH_URL, headers=headers, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+        logger.info(f"JSearch API returned {len(data.get('data', []))} items for '{query}'")
+    except Exception as e:
+        logger.exception(f"JSearch API error: {type(e).__name__}: {e}")
+        raise
 
     results = []
-    for item in data.get("data", [])[:5]:
+    for item in data.get("data", [])[:10]:
         lo = item.get("job_min_salary")
         hi = item.get("job_max_salary")
         cur = item.get("job_salary_currency") or "USD"
@@ -44,4 +55,5 @@ async def search_jsearch(role: str, location: str) -> list[dict]:
             url=item.get("job_apply_link") or "",
             description=(item.get("job_description") or "")[:3000],
         )))
+    logger.info(f"JSearch converted {len(results)} valid jobs")
     return results
