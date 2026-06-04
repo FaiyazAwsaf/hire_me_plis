@@ -42,8 +42,10 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
         get_user_experience_years(user_id),
     )
 
-    # Skill match — Jaccard similarity on lowercase word tokens, punctuation stripped
-    # Without stripping, "python," != "python" and every comma-separated skill misses
+    # Skill match — recall: what % of JD-required skills appear in the CV
+    # Jaccard (intersection/union) penalises comprehensive CVs because their large
+    # skill vocabulary inflates the union, making a perfect match score ~20%.
+    # Recall (intersection/jd_words) asks the right question: does the CV cover the JD?
     def _tokens(texts: list[str]) -> set[str]:
         tokens = set()
         for text in texts:
@@ -55,8 +57,7 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
 
     jd_words = _tokens(jd_skills)
     cv_words = _tokens(cv_skills_texts)
-    union = jd_words | cv_words
-    skill_match = min(100, round(len(jd_words & cv_words) / len(union) * 100)) if union else 0
+    skill_match = min(100, round(len(jd_words & cv_words) / len(jd_words) * 100)) if jd_words else 0
 
     # Semantic match — average cosine score of the top-3 experience chunks
     top3 = experience_results[:3]
