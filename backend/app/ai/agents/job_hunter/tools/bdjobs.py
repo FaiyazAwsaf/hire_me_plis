@@ -30,6 +30,7 @@ async def search_bdjobs(role: str, location: str, date_from: str | None = None) 
                 deadline=None,
                 url=_s(row.get("job_url")) or "",
                 description=(_s(row.get("description")) or "")[:3000],
+                source_platform="bdjobs",
             )))
         return results
 

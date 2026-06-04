@@ -73,6 +73,7 @@ async def search_jobs(
             salary_range=card.get("salary_range"),
             deadline=_parse_date(card.get("deadline")),
             url=card["url"],
+            source_platform=card.get("source_platform"),
             fit_score=card["fit_score"],
             fit_reasoning=card["fit_reasoning"],
         )

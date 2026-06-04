@@ -57,6 +57,7 @@ async def search_jsearch(role: str, location: str) -> list[dict]:
                         deadline=None,
                         url=item.get("job_apply_link") or "",
                         description=(item.get("job_description") or "")[:3000],
+                        source_platform="jsearch",
                     )))
 
                 if page < _NUM_PAGES:

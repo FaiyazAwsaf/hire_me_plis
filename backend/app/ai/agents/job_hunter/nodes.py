@@ -128,6 +128,7 @@ async def score_node(state: JobHunterState) -> dict:
                 "salary_range": job.get("salary_range"),
                 "deadline": job.get("deadline"),
                 "url": job["url"],
+                "source_platform": job.get("source_platform"),
                 "fit_score": result.score,
                 "fit_reasoning": result.explanation,
             }

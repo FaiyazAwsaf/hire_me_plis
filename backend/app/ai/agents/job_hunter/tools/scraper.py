@@ -38,6 +38,7 @@ async def search_remotive(query: str) -> list[dict]:
             url=item.get("url") or "",
             # Strip HTML before passing to the fit scorer — embedding raw tags adds noise
             description=_strip_html(item.get("description") or "")[:3000],
+            source_platform="remotive",
         )))
     logger.info(f"Remotive converted {len(results)} valid jobs (capped at 10)")
     return results

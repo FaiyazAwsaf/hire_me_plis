@@ -36,6 +36,7 @@ async def search_linkedin(role: str, location: str, date_from: str | None = None
                     deadline=None,
                     url=_s(row.get("job_url")) or "",
                     description=(_s(row.get("description")) or "")[:3000],
+                    source_platform="linkedin",
                 )))
             logger.info(f"LinkedIn converted {len(results)} valid jobs")
             return results
