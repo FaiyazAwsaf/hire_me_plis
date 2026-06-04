@@ -108,6 +108,14 @@ function ModernTemplate({ resume }: { resume: Resume }) {
   return (
     <div className="mx-auto grid min-h-[880px] w-[680px] grid-cols-[220px_1fr] overflow-hidden bg-white shadow-sm">
       <aside className="bg-[#a10f58] p-7 text-white">
+        {personalInfo.avatar && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={personalInfo.avatar}
+            alt=""
+            className="mb-5 h-24 w-24 rounded-full border-2 border-white/70 object-cover"
+          />
+        )}
         <h1 className="text-xl font-bold leading-tight">{personalInfo.fullName || "Your Name"}</h1>
         <p className="mt-2 text-[11px] font-medium opacity-90">{personalInfo.summary}</p>
 
@@ -160,6 +168,14 @@ function ClassicTemplate({ resume }: { resume: Resume }) {
   return (
     <div className="mx-auto min-h-[880px] w-[680px] bg-white p-8 shadow-sm">
       <header className="text-center">
+        {personalInfo.avatar && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={personalInfo.avatar}
+            alt=""
+            className="mx-auto mb-3 h-20 w-20 rounded-full border border-neutral-300 object-cover"
+          />
+        )}
         <h1 className="text-2xl font-bold text-black">{personalInfo.fullName || "Your Name"}</h1>
         {personalInfo.summary && <p className="mt-1 text-[11px] text-neutral-700">{personalInfo.summary}</p>}
       </header>
@@ -227,12 +243,24 @@ function ProfessionalTemplate({ resume }: { resume: Resume }) {
   return (
     <div className="mx-auto min-h-[880px] w-[680px] overflow-hidden bg-white shadow-sm">
       <header className="bg-[#6b347e] px-8 py-6 text-white">
-        <h1 className="text-2xl font-bold">{personalInfo.fullName || "Your Name"}</h1>
-        {personalInfo.summary && <p className="mt-1 text-xs opacity-85">{personalInfo.summary}</p>}
-        <div className="mt-4 flex flex-wrap gap-4 text-[10px] opacity-80">
-          {personalInfo.email && <span>{personalInfo.email}</span>}
-          {personalInfo.phone && <span>{personalInfo.phone}</span>}
-          {personalInfo.address && <span>{personalInfo.address}</span>}
+        <div className="flex items-center gap-5">
+          {personalInfo.avatar && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={personalInfo.avatar}
+              alt=""
+              className="h-20 w-20 rounded-full border-2 border-white/60 object-cover"
+            />
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">{personalInfo.fullName || "Your Name"}</h1>
+            {personalInfo.summary && <p className="mt-1 text-xs opacity-85">{personalInfo.summary}</p>}
+            <div className="mt-4 flex flex-wrap gap-4 text-[10px] opacity-80">
+              {personalInfo.email && <span>{personalInfo.email}</span>}
+              {personalInfo.phone && <span>{personalInfo.phone}</span>}
+              {personalInfo.address && <span>{personalInfo.address}</span>}
+            </div>
+          </div>
         </div>
       </header>
 

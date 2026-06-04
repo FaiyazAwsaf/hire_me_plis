@@ -13,7 +13,6 @@ import {
   Save,
   Settings,
 } from "lucide-react";
-import Link from "next/link";
 
 import { useResumeStore } from "@/store/resume";
 import { Resume, ResumeTemplateId, defaultResume } from "@/lib/resume/types";
@@ -40,6 +39,7 @@ const emptyPersonalInfo = {
   github: "",
   portfolio: "",
   summary: "",
+  avatar: "",
 };
 
 const normalizeTemplate = (template: string): ResumeTemplateId => {
@@ -162,6 +162,8 @@ export default function ResumeBuilderPage() {
     };
     syncPreviewResume(newResume);
     setResumeTitle("My Resume");
+    setSelectedTemplate(newResume.templateId);
+    setShowManagement(false);
   };
 
   const handleDuplicateResume = (resume: Resume) => {
@@ -210,9 +212,14 @@ export default function ResumeBuilderPage() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Link href="/cv/upload" className="text-neutral-600 hover:text-neutral-900">
+              <button
+                type="button"
+                onClick={() => setShowManagement(true)}
+                className="text-neutral-600 hover:text-neutral-900"
+                aria-label="Back to saved resumes"
+              >
                 <ArrowLeft className="h-5 w-5" />
-              </Link>
+              </button>
               <div className="flex-1">
                 <Label htmlFor="resumeTitle" className="text-xs text-neutral-600 block mb-1">
                   Resume Title
@@ -228,35 +235,39 @@ export default function ResumeBuilderPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleNewResume}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                New
-              </Button>
+              {showManagement ? (
+                <Button
+                  onClick={handleNewResume}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  New
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => setShowManagement(true)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Manage
+                  </Button>
 
-              <Button
-                onClick={() => setShowManagement(!showManagement)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Manage
-              </Button>
-
-              <Button
-                onClick={handleSaveResume}
-                disabled={isSaving}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
+                  <Button
+                    onClick={handleSaveResume}
+                    disabled={isSaving}
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSaving ? "Saving..." : "Save"}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -268,9 +279,6 @@ export default function ResumeBuilderPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Saved Resumes</h2>
-              <Button onClick={() => setShowManagement(false)} variant="outline">
-                Close
-              </Button>
             </div>
             <ResumeManagement
               resumes={savedResumes}

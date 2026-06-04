@@ -180,6 +180,7 @@ function generateModernTemplate(resume: Resume): string {
     .section { margin-bottom: 18px; }
     .section-title { color: #111827; }
     .contact p, aside li { margin: 0 0 8px; }
+    .avatar { width: 24mm; height: 24mm; border-radius: 999px; object-fit: cover; border: 2px solid rgba(255,255,255,.7); margin-bottom: 8mm; }
     .entry { display: grid; grid-template-columns: 28mm 1fr; gap: 8mm; margin-bottom: 12px; }
     .entry-head { display: flex; justify-content: space-between; gap: 12px; }
     .entry-head span { color: #a10f58; font-size: 10px; }
@@ -188,6 +189,7 @@ function generateModernTemplate(resume: Resume): string {
   const body = `
     <div class="page">
       <aside>
+        ${personalInfo.avatar ? `<img class="avatar" src="${personalInfo.avatar}" alt="" />` : ""}
         <h1>${escapeHtml(personalInfo.fullName || "Your Name")}</h1>
         ${personalInfo.summary ? `<p>${escapeHtml(personalInfo.summary)}</p>` : ""}
         <h2>Personal details</h2>
@@ -216,6 +218,7 @@ function generateClassicTemplate(resume: Resume): string {
     .page { padding: 14mm 18mm; }
     header { text-align: center; margin-bottom: 12mm; }
     h1 { margin: 0; color: #000; font-size: 22px; }
+    .avatar { width: 22mm; height: 22mm; border-radius: 999px; object-fit: cover; border: 1px solid #d4d4d4; margin-bottom: 4mm; }
     .box { border: 1px solid #6ab0a6; margin-bottom: 7mm; }
     .box-title { margin: 0; background: #2f8d7f; color: white; padding: 4px 8px; font-size: 13px; }
     .box-content { padding: 8px; }
@@ -228,6 +231,7 @@ function generateClassicTemplate(resume: Resume): string {
   const body = `
     <div class="page">
       <header>
+        ${personalInfo.avatar ? `<img class="avatar" src="${personalInfo.avatar}" alt="" />` : ""}
         <h1>${escapeHtml(personalInfo.fullName || "Your Name")}</h1>
         ${personalInfo.summary ? `<p>${escapeHtml(personalInfo.summary)}</p>` : ""}
       </header>
@@ -253,6 +257,8 @@ function generateProfessionalTemplate(resume: Resume): string {
   const styles = `
     body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.42; }
     header { background: #6b347e; color: white; padding: 13mm 17mm; }
+    .hero { display: flex; align-items: center; gap: 8mm; }
+    .avatar { width: 22mm; height: 22mm; border-radius: 999px; object-fit: cover; border: 2px solid rgba(255,255,255,.6); flex: none; }
     h1 { margin: 0; font-size: 24px; }
     .contact { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 10px; opacity: .82; }
     .body { display: grid; grid-template-columns: 1fr 54mm; gap: 10mm; padding: 12mm 17mm; }
@@ -268,9 +274,14 @@ function generateProfessionalTemplate(resume: Resume): string {
   const body = `
     <div class="page">
       <header>
-        <h1>${escapeHtml(personalInfo.fullName || "Your Name")}</h1>
-        ${personalInfo.summary ? `<p>${escapeHtml(personalInfo.summary)}</p>` : ""}
-        <div class="contact">${contactLine(resume)}</div>
+        <div class="hero">
+          ${personalInfo.avatar ? `<img class="avatar" src="${personalInfo.avatar}" alt="" />` : ""}
+          <div>
+            <h1>${escapeHtml(personalInfo.fullName || "Your Name")}</h1>
+            ${personalInfo.summary ? `<p>${escapeHtml(personalInfo.summary)}</p>` : ""}
+            <div class="contact">${contactLine(resume)}</div>
+          </div>
+        </div>
       </header>
       <div class="body">
         <main>

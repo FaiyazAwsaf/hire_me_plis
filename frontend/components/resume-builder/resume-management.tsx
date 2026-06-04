@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Resume } from "@/lib/resume/types";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Copy, Trash2, Edit2, Calendar } from "lucide-react";
-import { useResumeStore } from "@/store/resume";
+import { Copy, Trash2, Calendar } from "lucide-react";
 
 interface ResumeManagementProps {
   resumes: Resume[];
