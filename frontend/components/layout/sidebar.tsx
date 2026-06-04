@@ -52,12 +52,12 @@ export function Sidebar() {
   return (
     <aside 
       className={cn(
-        "flex flex-col shrink-0 border-r bg-sidebar text-sidebar-foreground h-full transition-all duration-300 ease-in-out text-left",
+        "m-3 mr-0 flex h-[calc(100%-1.5rem)] shrink-0 flex-col rounded-2xl border border-white/65 bg-white/55 text-sidebar-foreground shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition-all duration-300 ease-in-out text-left",
         isExpanded ? "w-60" : "w-16"
       )}
     >
       {/* --- LOGO / TOGGLE AREA --- */}
-      <div className="flex items-center h-14 px-4 border-b justify-between gap-2 overflow-hidden">
+      <div className="flex items-center h-14 px-4 border-b border-white/60 justify-between gap-2 overflow-hidden">
         {isExpanded ? (
           <>
             <span className="font-black text-base tracking-tight truncate text-neutral-900 animate-in fade-in duration-200">
@@ -66,7 +66,7 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-neutral-500 hover:bg-neutral-100 rounded-lg shrink-0"
+              className="h-8 w-8 rounded-xl border border-white/60 bg-white/45 text-neutral-500 shadow-sm backdrop-blur hover:bg-white/75"
               onClick={() => setIsExpanded(false)}
               title="Minimize sidebar"
             >
@@ -77,7 +77,7 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-neutral-700 hover:bg-neutral-100 rounded-lg mx-auto shrink-0"
+            className="h-9 w-9 rounded-xl border border-white/60 bg-white/45 text-neutral-700 shadow-sm backdrop-blur hover:bg-white/75 mx-auto shrink-0"
             onClick={() => setIsExpanded(true)}
             title="Expand sidebar"
           >
@@ -102,8 +102,8 @@ export function Sidebar() {
                   className={cn(
                     "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
                     active
-                      ? "bg-black text-white shadow-sm font-semibold"
-                      : "hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900"
+                      ? "border border-white/70 bg-white/75 text-neutral-950 shadow-[0_12px_30px_rgba(15,23,42,0.10)] font-semibold"
+                      : "text-neutral-600 hover:bg-white/55 hover:text-neutral-950 hover:shadow-sm"
                   )}
                 >
                   <Icon 
@@ -129,7 +129,7 @@ export function Sidebar() {
 
                   {!isExpanded && (
                     <div className={cn(
-                      "absolute left-0 w-1 h-4 bg-red-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
+                      "absolute left-0 w-1 h-4 bg-sky-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
                       active ? "opacity-100 scale-100" : "group-hover:opacity-60 group-hover:scale-100"
                     )} />
                   )}
@@ -141,8 +141,8 @@ export function Sidebar() {
                   className={cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 group relative",
                     active
-                      ? "bg-black text-white shadow-sm font-semibold"
-                      : "hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900"
+                      ? "border border-white/70 bg-white/75 text-neutral-950 shadow-[0_12px_30px_rgba(15,23,42,0.10)] font-semibold"
+                      : "text-neutral-600 hover:bg-white/55 hover:text-neutral-950 hover:shadow-sm"
                   )}
                 >
                   <Icon 
@@ -160,7 +160,7 @@ export function Sidebar() {
 
                   {!isExpanded && (
                     <div className={cn(
-                      "absolute left-0 w-1 h-4 bg-red-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
+                      "absolute left-0 w-1 h-4 bg-sky-500 rounded-r-md transition-opacity opacity-0 scale-0 origin-left",
                       active ? "opacity-100 scale-100" : "group-hover:opacity-60 group-hover:scale-100"
                     )} />
                   )}
@@ -179,8 +179,8 @@ export function Sidebar() {
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200",
                           childActive
-                            ? "bg-neutral-200 text-neutral-900 font-semibold"
-                            : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+                            ? "border border-white/60 bg-white/65 text-neutral-950 font-semibold shadow-sm"
+                            : "text-neutral-600 hover:text-neutral-950 hover:bg-white/50"
                         )}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />
