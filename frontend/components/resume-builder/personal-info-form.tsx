@@ -20,6 +20,17 @@ interface PersonalInfoFormProps {
 type PersonalInfoFormInput = z.input<typeof personalInfoSchema>;
 
 const cropSize = 240;
+const clearedPersonalInfo: PersonalInfo = {
+  fullName: "",
+  email: "",
+  phone: "",
+  address: "",
+  linkedin: "",
+  github: "",
+  portfolio: "",
+  avatar: "",
+  summary: "",
+};
 
 interface CropPosition {
   x: number;
@@ -159,6 +170,15 @@ export function PersonalInfoForm({ data, onSave, onDelete }: PersonalInfoFormPro
 
   const handleRemoveAvatar = () => {
     onSave(buildPersonalInfo(""));
+  };
+
+  const handleDeletePersonalInfo = () => {
+    reset(clearedPersonalInfo);
+    setCropSource(null);
+    setZoom(1);
+    setRotation(0);
+    setCropPosition({ x: 0, y: 0 });
+    onDelete();
   };
 
   const baseScale = Math.max(cropSize / imageSize.width, cropSize / imageSize.height);
@@ -337,7 +357,7 @@ export function PersonalInfoForm({ data, onSave, onDelete }: PersonalInfoFormPro
           type="button"
           variant="outline"
           className="text-red-500 hover:text-red-600 hover:bg-red-50"
-          onClick={() => onDelete()}
+          onClick={handleDeletePersonalInfo}
         >
           Delete
         </Button>
