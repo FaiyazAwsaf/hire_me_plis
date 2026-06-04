@@ -69,10 +69,13 @@ export const certificationSchema = z.object({
   link: z.string().url("Invalid certification URL").optional().or(z.literal("")),
 });
 
+export const resumeTemplateSchema = z.enum(["modern", "classic", "professional"]);
+export type ResumeTemplateId = z.infer<typeof resumeTemplateSchema>;
+
 export const resumeSchema = z.object({
   id: z.string(),
   title: z.string().min(1, "Resume title is required").max(100),
-  templateId: z.enum(["modern", "classic", "minimal"]),
+  templateId: resumeTemplateSchema,
   personalInfo: personalInfoSchema,
   education: z.array(educationSchema),
   experience: z.array(experienceSchema),

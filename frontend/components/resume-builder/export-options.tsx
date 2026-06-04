@@ -1,13 +1,16 @@
 "use client";
 
 import React from "react";
-import { Resume } from "@/lib/resume/types";
+import { Resume, ResumeTemplateId } from "@/lib/resume/types";
 import { Button } from "@/components/ui/button";
 import { Download, FileJson } from "lucide-react";
 import { generateResumeHTML, downloadJSON } from "@/lib/resume/utils";
+import { ToastMessage } from "@/components/ui/toast";
 
 interface ExportOptionsProps {
   resume: Resume;
+  templateId: ResumeTemplateId;
+  onNotify: (toast: Omit<ToastMessage, "id">) => void;
 }
 
 /**
@@ -15,33 +18,55 @@ interface ExportOptionsProps {
  * Provides export functionality for resume
  * Supports PDF and JSON export
  */
-export function ExportOptions({ resume }: ExportOptionsProps) {
+export function ExportOptions({ resume, templateId, onNotify }: ExportOptionsProps) {
   const [isExporting, setIsExporting] = React.useState(false);
 
   const handlePDFExport = async () => {
     setIsExporting(true);
     try {
-      // Generate HTML
-      const html = generateResumeHTML(resume);
+      const html = generateResumeHTML({ ...resume, templateId }, templateId);
+      const iframe = document.createElement("iframe");
 
-      // Create a new window with the HTML
-      const printWindow = window.open("", "", "height=800,width=1000");
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.setAttribute("aria-hidden", "true");
+      document.body.appendChild(iframe);
 
-        // Wait for content to load, then print
-        printWindow.onload = () => {
-          printWindow.print();
-          // After printing, close the window
-          setTimeout(() => {
-            printWindow.close();
-          }, 100);
-        };
+      const printDocument = iframe.contentDocument;
+      const printWindow = iframe.contentWindow;
+
+      if (!printDocument || !printWindow) {
+        throw new Error("Unable to prepare the PDF export surface.");
       }
+
+      printDocument.open();
+      printDocument.write(html);
+      printDocument.close();
+
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+      printWindow.focus();
+      printWindow.print();
+
+      window.setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+
+      onNotify({
+        title: "PDF export ready",
+        description: "Use your browser's save as PDF option. The resume layout is sized to one A4 page without browser metadata.",
+        tone: "success",
+      });
     } catch (error) {
       console.error("Error exporting PDF:", error);
-      alert("Failed to export PDF. Please try again.");
+      onNotify({
+        title: "Failed to export PDF",
+        description: "Please try again after saving the resume.",
+        tone: "error",
+      });
     } finally {
       setIsExporting(false);
     }
@@ -49,6 +74,7 @@ export function ExportOptions({ resume }: ExportOptionsProps) {
 
   const handleJSONExport = () => {
     downloadJSON(resume);
+    onNotify({ title: "JSON exported", tone: "success" });
   };
 
   return (

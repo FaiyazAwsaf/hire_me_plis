@@ -1,280 +1,301 @@
 "use client";
 
 import React from "react";
-import { Resume } from "@/lib/resume/types";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { Resume, ResumeTemplateId } from "@/lib/resume/types";
 import { formatDate } from "@/lib/resume/utils";
 
 interface ResumePreviewProps {
   resume: Resume;
-  templateId?: "modern" | "classic" | "minimal";
+  templateId?: ResumeTemplateId;
 }
 
-/**
- * ResumePreview Component
- * Displays a saved preview snapshot of the resume
- */
-function ResumePreviewComponent({ resume, templateId = "modern" }: ResumePreviewProps) {
-  const templateStyles = {
-    modern: {
-      headerBorder: "border-b-2 border-blue-600",
-      headerName: "text-2xl font-bold text-blue-900",
-      sectionHeader: "text-sm font-bold text-blue-900 uppercase border-b border-gray-300",
-      linkColor: "text-blue-600",
-    },
-    classic: {
-      headerBorder: "border-b-2 border-gray-800",
-      headerName: "text-2xl font-bold text-gray-900",
-      sectionHeader: "text-sm font-bold text-gray-900 uppercase border-b-2 border-gray-800",
-      linkColor: "text-gray-700",
-    },
-    minimal: {
-      headerBorder: "border-b border-gray-300",
-      headerName: "text-xl font-semibold text-gray-900",
-      sectionHeader: "text-xs font-semibold text-gray-900 uppercase border-b border-gray-200",
-      linkColor: "text-gray-600",
-    },
-  };
+const splitLines = (text: string) =>
+  text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-  const styles = templateStyles[templateId as keyof typeof templateStyles] || templateStyles.modern;
+function EmptyState({ resume }: { resume: Resume }) {
+  if (resume.personalInfo.fullName) return null;
 
   return (
-    <div className="flex-1 bg-white rounded-lg border border-neutral-200 overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
-        <h2 className="text-lg font-semibold text-neutral-900">Preview</h2>
-        <p className="text-xs text-neutral-600 mt-1">
-          Updates after you save
-        </p>
-      </div>
+    <div className="py-12 text-center text-sm text-neutral-500">
+      Start filling in your information to see the preview
+    </div>
+  );
+}
 
-      {/* Preview Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-8 max-w-4xl mx-auto">
-          {/* Header Section */}
-          <div className={`mb-6 pb-4 ${styles.headerBorder}`}>
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              {resume.personalInfo.avatar && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={resume.personalInfo.avatar}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full object-cover border-2 border-neutral-200 shrink-0"
-                />
-              )}
-              <div>
-                <h1 className={`${styles.headerName} mb-1`}>
-                  {resume.personalInfo.fullName || "Your Name"}
-                </h1>
-                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                  {resume.personalInfo.email && (
-                    <span>{resume.personalInfo.email}</span>
-                  )}
-                  {resume.personalInfo.phone && (
-                    <span>{resume.personalInfo.phone}</span>
-                  )}
-                  {resume.personalInfo.address && (
-                    <span>{resume.personalInfo.address}</span>
-                  )}
-                </div>
-                <div className={`flex flex-wrap gap-4 text-sm ${styles.linkColor} mt-2`}>
-                  {resume.personalInfo.linkedin && (
-                    <a
-                      href={resume.personalInfo.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      LinkedIn
-                    </a>
-                  )}
-                  {resume.personalInfo.github && (
-                    <a
-                      href={resume.personalInfo.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      GitHub
-                    </a>
-                  )}
-                  {resume.personalInfo.portfolio && (
-                    <a
-                      href={resume.personalInfo.portfolio}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      Portfolio
-                    </a>
-                  )}
-                </div>
+function ExperienceBlock({ resume }: { resume: Resume }) {
+  if (resume.experience.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="resume-section-title">Employment</h2>
+      <div className="space-y-4">
+        {resume.experience.map((exp) => (
+          <div key={exp.id} className="grid grid-cols-[95px_1fr] gap-4 text-[11px]">
+            <div className="font-semibold text-neutral-700">
+              {formatDate(exp.startDate)} - {formatDate(exp.endDate)}
+            </div>
+            <div>
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="text-xs font-bold text-neutral-950">{exp.position}</h3>
+                <span className="text-[10px] text-neutral-500">{exp.company}</span>
               </div>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-neutral-800">
+                {splitLines(exp.responsibilities).map((item, index) => (
+                  <li key={`${exp.id}-${index}`}>{item}</li>
+                ))}
+              </ul>
             </div>
           </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-          {/* Professional Summary */}
-          {resume.personalInfo.summary && (
-            <section className="mb-5">
-              <h2 className={`${styles.sectionHeader} pb-1 mb-2`}>
-                Professional Summary
-              </h2>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {resume.personalInfo.summary}
-              </p>
-            </section>
-          )}
+function EducationBlock({ resume }: { resume: Resume }) {
+  if (resume.education.length === 0) return null;
 
-          {/* Experience */}
-          {resume.experience.length > 0 && (
-            <section className="mb-5">
-              <h2 className={`${styles.sectionHeader} pb-1 mb-3`}>
-                Experience
-              </h2>
-              <div className="space-y-3">
-                {resume.experience.map((exp) => (
-                  <div key={exp.id}>
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="font-semibold text-sm text-gray-900">
-                        {exp.position}
-                      </h3>
-                      <span className="text-xs text-gray-600">
-                        {formatDate(exp.startDate)} - {formatDate(exp.endDate)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 italic">
-                      {exp.company}
-                    </p>
-                    <p className="text-sm text-gray-700 mt-1">
-                      {exp.responsibilities}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Education */}
-          {resume.education.length > 0 && (
-            <section className="mb-5">
-              <h2 className={`${styles.sectionHeader} pb-1 mb-3`}>
-                Education
-              </h2>
-              <div className="space-y-3">
-                {resume.education.map((edu) => (
-                  <div key={edu.id}>
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="font-semibold text-sm text-gray-900">
-                        {edu.degree}
-                      </h3>
-                      <span className="text-xs text-gray-600">
-                        {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 italic">
-                      {edu.institution}
-                    </p>
-                    {edu.gpa && (
-                      <p className="text-xs text-gray-600">GPA: {edu.gpa}</p>
-                    )}
-                    {edu.description && (
-                      <p className="text-sm text-gray-700 mt-1">
-                        {edu.description}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Skills */}
-          {resume.skills.length > 0 && (
-            <section className="mb-5">
-              <h2 className={`${styles.sectionHeader} pb-1 mb-3`}>
-                Skills
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {resume.skills.map((skill) => (
-                  <span
-                    key={skill.id}
-                    className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 text-blue-900 text-xs rounded font-medium"
-                  >
-                    {skill.name}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Projects */}
-          {resume.projects.length > 0 && (
-            <section className="mb-5">
-              <h2 className={`${styles.sectionHeader} pb-1 mb-3`}>
-                Projects
-              </h2>
-              <div className="space-y-3">
-                {resume.projects.map((proj) => (
-                  <div key={proj.id}>
-                    <h3 className="font-semibold text-sm text-gray-900">
-                      {proj.name}
-                    </h3>
-                    <p className="text-sm text-gray-700 mt-1">
-                      {proj.description}
-                    </p>
-                    {proj.technologies.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {proj.technologies.map((tech) => (
-                          <span
-                            key={tech}
-                            className="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Certifications */}
-          {resume.certifications.length > 0 && (
-            <section>
-              <h2 className={`${styles.sectionHeader} pb-1 mb-3`}>
-                Certifications
-              </h2>
-              <div className="space-y-3">
-                {resume.certifications.map((cert) => (
-                  <div key={cert.id}>
-                    <div className="flex justify-between items-baseline">
-                      <h3 className="font-semibold text-sm text-gray-900">
-                        {cert.name}
-                      </h3>
-                      <span className="text-xs text-gray-600">
-                        {formatDate(cert.date)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 italic">
-                      {cert.issuer}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Empty State */}
-          {!resume.personalInfo.fullName && (
-            <div className="text-center py-12">
-              <p className="text-neutral-500 text-sm">
-                Start filling in your information to see the preview
-              </p>
+  return (
+    <section>
+      <h2 className="resume-section-title">Education</h2>
+      <div className="space-y-3">
+        {resume.education.map((edu) => (
+          <div key={edu.id} className="grid grid-cols-[95px_1fr] gap-4 text-[11px]">
+            <div className="font-semibold text-neutral-700">
+              {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
             </div>
+            <div>
+              <h3 className="text-xs font-bold text-neutral-950">{edu.degree}</h3>
+              <p className="text-[11px] text-neutral-600">{edu.institution}</p>
+              {edu.gpa && <p className="text-[11px] text-neutral-600">GPA: {edu.gpa}</p>}
+              {edu.description && <p className="mt-1 text-neutral-800">{edu.description}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProjectBlock({ resume }: { resume: Resume }) {
+  if (resume.projects.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="resume-section-title">Projects</h2>
+      <div className="space-y-3">
+        {resume.projects.map((project) => (
+          <div key={project.id} className="text-[11px]">
+            <h3 className="text-xs font-bold text-neutral-950">{project.name}</h3>
+            <p className="mt-1 text-neutral-800">{project.description}</p>
+            {project.technologies.length > 0 && (
+              <p className="mt-1 text-neutral-600">{project.technologies.join(", ")}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ModernTemplate({ resume }: { resume: Resume }) {
+  const { personalInfo } = resume;
+
+  return (
+    <div className="mx-auto grid min-h-[880px] w-[680px] grid-cols-[220px_1fr] overflow-hidden bg-white shadow-sm">
+      <aside className="bg-[#a10f58] p-7 text-white">
+        <h1 className="text-xl font-bold leading-tight">{personalInfo.fullName || "Your Name"}</h1>
+        <p className="mt-2 text-[11px] font-medium opacity-90">{personalInfo.summary}</p>
+
+        <div className="mt-7 space-y-5">
+          <section>
+            <h2 className="border-b border-white/35 pb-1 text-sm font-bold">Personal details</h2>
+            <div className="mt-3 space-y-3 text-[11px]">
+              {personalInfo.email && <p className="flex gap-2"><Mail className="mt-0.5 h-3 w-3" />{personalInfo.email}</p>}
+              {personalInfo.phone && <p className="flex gap-2"><Phone className="mt-0.5 h-3 w-3" />{personalInfo.phone}</p>}
+              {personalInfo.address && <p className="flex gap-2"><MapPin className="mt-0.5 h-3 w-3" />{personalInfo.address}</p>}
+            </div>
+          </section>
+
+          {resume.skills.length > 0 && (
+            <section>
+              <h2 className="border-b border-white/35 pb-1 text-sm font-bold">Skills</h2>
+              <ul className="mt-3 space-y-2 text-[11px]">
+                {resume.skills.map((skill) => (
+                  <li key={skill.id} className="flex gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 bg-white" />
+                    {skill.name}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </div>
+      </aside>
+
+      <main className="space-y-5 p-7 text-neutral-900">
+        {personalInfo.summary && (
+          <section>
+            <h2 className="resume-section-title">Profile</h2>
+            <p className="text-[11px] leading-relaxed">{personalInfo.summary}</p>
+          </section>
+        )}
+        <ExperienceBlock resume={resume} />
+        <EducationBlock resume={resume} />
+        <ProjectBlock resume={resume} />
+        <EmptyState resume={resume} />
+      </main>
+    </div>
+  );
+}
+
+function ClassicTemplate({ resume }: { resume: Resume }) {
+  const { personalInfo } = resume;
+  const boxClass = "border border-[#6ab0a6]";
+
+  return (
+    <div className="mx-auto min-h-[880px] w-[680px] bg-white p-8 shadow-sm">
+      <header className="text-center">
+        <h1 className="text-2xl font-bold text-black">{personalInfo.fullName || "Your Name"}</h1>
+        {personalInfo.summary && <p className="mt-1 text-[11px] text-neutral-700">{personalInfo.summary}</p>}
+      </header>
+
+      <main className="mt-7 space-y-5">
+        <section className={boxClass}>
+          <h2 className="bg-[#2f8d7f] px-3 py-1 text-sm font-bold text-white">Personal details</h2>
+          <div className="grid grid-cols-[150px_1fr] gap-y-2 p-3 text-[11px]">
+            <span className="font-bold">Email address</span><span>{personalInfo.email}</span>
+            <span className="font-bold">Phone number</span><span>{personalInfo.phone}</span>
+            <span className="font-bold">Address</span><span>{personalInfo.address}</span>
+          </div>
+        </section>
+
+        {personalInfo.summary && (
+          <section className={boxClass}>
+            <h2 className="bg-[#2f8d7f] px-3 py-1 text-sm font-bold text-white">Profile</h2>
+            <p className="p-3 text-[11px] leading-relaxed">{personalInfo.summary}</p>
+          </section>
+        )}
+
+        <section className={boxClass}>
+          <h2 className="bg-[#2f8d7f] px-3 py-1 text-sm font-bold text-white">Employment</h2>
+          <div className="space-y-4 p-3">
+            {resume.experience.map((exp) => (
+              <div key={exp.id} className="grid grid-cols-[150px_1fr] gap-3 text-[11px]">
+                <span className="font-bold">{formatDate(exp.startDate)} - {formatDate(exp.endDate)}</span>
+                <div>
+                  <h3 className="font-bold">{exp.position}</h3>
+                  <p className="text-neutral-600">{exp.company}</p>
+                  <ul className="mt-1 list-disc pl-4">
+                    {splitLines(exp.responsibilities).map((item, index) => <li key={index}>{item}</li>)}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {resume.education.length > 0 && (
+          <section className={boxClass}>
+            <h2 className="bg-[#2f8d7f] px-3 py-1 text-sm font-bold text-white">Education</h2>
+            <div className="space-y-3 p-3">
+              {resume.education.map((edu) => (
+                <div key={edu.id} className="grid grid-cols-[150px_1fr] gap-3 text-[11px]">
+                  <span className="font-bold">{formatDate(edu.startDate)} - {formatDate(edu.endDate)}</span>
+                  <div>
+                    <h3 className="font-bold">{edu.degree}</h3>
+                    <p>{edu.institution}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        <EmptyState resume={resume} />
+      </main>
+    </div>
+  );
+}
+
+function ProfessionalTemplate({ resume }: { resume: Resume }) {
+  const { personalInfo } = resume;
+
+  return (
+    <div className="mx-auto min-h-[880px] w-[680px] overflow-hidden bg-white shadow-sm">
+      <header className="bg-[#6b347e] px-8 py-6 text-white">
+        <h1 className="text-2xl font-bold">{personalInfo.fullName || "Your Name"}</h1>
+        {personalInfo.summary && <p className="mt-1 text-xs opacity-85">{personalInfo.summary}</p>}
+        <div className="mt-4 flex flex-wrap gap-4 text-[10px] opacity-80">
+          {personalInfo.email && <span>{personalInfo.email}</span>}
+          {personalInfo.phone && <span>{personalInfo.phone}</span>}
+          {personalInfo.address && <span>{personalInfo.address}</span>}
+        </div>
+      </header>
+
+      <main className="grid grid-cols-[1fr_205px] gap-7 px-8 py-7">
+        <div className="space-y-5">
+          {personalInfo.summary && (
+            <section>
+              <h2 className="resume-section-title text-[#6b347e]">Profile</h2>
+              <p className="text-[11px] leading-relaxed">{personalInfo.summary}</p>
+            </section>
+          )}
+          <ExperienceBlock resume={resume} />
+          <EducationBlock resume={resume} />
+          <ProjectBlock resume={resume} />
+          <EmptyState resume={resume} />
+        </div>
+
+        <aside className="space-y-5 border-l border-neutral-200 pl-6">
+          {resume.certifications.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold text-[#6b347e]">Professional Affiliations</h2>
+              {resume.certifications.map((cert) => (
+                <div key={cert.id} className="mb-3 text-[11px]">
+                  <h3 className="font-bold">{cert.name}</h3>
+                  <p>{cert.issuer}</p>
+                  <p>{formatDate(cert.date)}</p>
+                </div>
+              ))}
+            </section>
+          )}
+          {resume.skills.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold text-[#6b347e]">Skills</h2>
+              <ul className="space-y-2 text-[11px]">
+                {resume.skills.map((skill) => (
+                  <li key={skill.id} className="flex gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 bg-[#6b347e]" />
+                    {skill.name}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function ResumePreviewComponent({ resume, templateId = "modern" }: ResumePreviewProps) {
+  const activeTemplate = templateId === "professional" ? "professional" : templateId;
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white">
+      <div className="shrink-0 border-b border-neutral-200 bg-neutral-50 px-6 py-4">
+        <h2 className="text-lg font-semibold text-neutral-900">Preview</h2>
+        <p className="mt-1 text-xs text-neutral-600">Updates after you save</p>
+      </div>
+      <div className="flex-1 overflow-auto bg-neutral-100 p-6">
+        <style>{`.resume-section-title{margin-bottom:.5rem;border-bottom:1px solid #e5e7eb;padding-bottom:.25rem;font-size:.875rem;font-weight:700;color:#171717}`}</style>
+        {activeTemplate === "classic" && <ClassicTemplate resume={resume} />}
+        {activeTemplate === "professional" && <ProfessionalTemplate resume={resume} />}
+        {activeTemplate === "modern" && <ModernTemplate resume={resume} />}
       </div>
     </div>
   );

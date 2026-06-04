@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
-  Download,
   Plus,
   Save,
   Settings,
@@ -17,8 +16,9 @@ import {
 import Link from "next/link";
 
 import { useResumeStore } from "@/store/resume";
-import { Resume, defaultResume } from "@/lib/resume/types";
+import { Resume, ResumeTemplateId, defaultResume } from "@/lib/resume/types";
 import { generateResumeId } from "@/lib/resume/utils";
+import { ToastMessage, ToastViewport } from "@/components/ui/toast";
 
 import { PersonalInfoForm } from "@/components/resume-builder/personal-info-form";
 import { EducationForm } from "@/components/resume-builder/education-form";
@@ -41,6 +41,18 @@ const emptyPersonalInfo = {
   portfolio: "",
   summary: "",
 };
+
+const normalizeTemplate = (template: string): ResumeTemplateId => {
+  if (template === "classic" || template === "professional" || template === "modern") {
+    return template;
+  }
+  return "professional";
+};
+
+const normalizeResume = (resume: Resume): Resume => ({
+  ...resume,
+  templateId: normalizeTemplate(resume.templateId),
+});
 
 /**
  * Resume Builder Page
@@ -68,15 +80,22 @@ export default function ResumeBuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [resumeTitle, setResumeTitle] = useState(currentResume.title);
   const [showManagement, setShowManagement] = useState(false);
-  const [previewResume, setPreviewResume] = useState(currentResume);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  // Keep the preview snapshot in sync with the store's current resume.
-  useEffect(() => {
-    setPreviewResume(currentResume);
-  }, [currentResume]);
+  const notify = (toast: Omit<ToastMessage, "id">) => {
+    const id = Date.now();
+    setToasts((current) => [...current, { ...toast, id }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((item) => item.id !== id));
+    }, 4200);
+  };
+
+  const dismissToast = (id: number) => {
+    setToasts((current) => current.filter((item) => item.id !== id));
+  };
 
   const syncPreviewResume = (resume: Resume) => {
-    setPreviewResume(resume);
     setCurrentResume(resume);
   };
 
@@ -85,13 +104,13 @@ export default function ResumeBuilderPage() {
     const saved = localStorage.getItem("resumes");
     if (saved) {
       try {
-        const parsedResumes = JSON.parse(saved);
-        setSavedResumes(parsedResumes);
+        const parsedResumes = JSON.parse(saved) as Resume[];
+        setSavedResumes(parsedResumes.map(normalizeResume));
       } catch (error) {
         console.error("Failed to load saved resumes:", error);
       }
     }
-  }, []);
+  }, [setSavedResumes]);
 
   // Save current resume to localStorage whenever it changes
   useEffect(() => {
@@ -121,10 +140,14 @@ export default function ResumeBuilderPage() {
       }
 
       syncPreviewResume(updatedResume);
-      alert("Resume saved successfully!");
+      notify({ title: "Resume saved", tone: "success" });
     } catch (error) {
       console.error("Error saving resume:", error);
-      alert("Failed to save resume");
+      notify({
+        title: "Failed to save resume",
+        description: "Please try again in a moment.",
+        tone: "error",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -155,19 +178,19 @@ export default function ResumeBuilderPage() {
   };
 
   const handleDeleteResume = (id: string) => {
-    if (confirm("Are you sure you want to delete this resume?")) {
-      removeSavedResume(id);
-      if (currentResume.id === id) {
-        handleNewResume();
-      }
+    removeSavedResume(id);
+    if (currentResume.id === id) {
+      handleNewResume();
     }
+    setPendingDeleteId(null);
+    notify({ title: "Resume deleted", tone: "success" });
   };
 
   const handleSelectResume = (resume: Resume) => {
-    setCurrentResume(resume);
-    setResumeTitle(resume.title);
-    setSelectedTemplate(resume.templateId);
-    setPreviewResume(resume);
+    const normalizedResume = normalizeResume(resume);
+    setCurrentResume(normalizedResume);
+    setResumeTitle(normalizedResume.title);
+    setSelectedTemplate(normalizedResume.templateId);
     setShowManagement(false);
   };
 
@@ -181,6 +204,7 @@ export default function ResumeBuilderPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
       {/* Header */}
       <div className="bg-white border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -252,7 +276,7 @@ export default function ResumeBuilderPage() {
               resumes={savedResumes}
               onSelectResume={handleSelectResume}
               onDuplicate={handleDuplicateResume}
-              onDelete={handleDeleteResume}
+              onDelete={setPendingDeleteId}
               currentResumeId={currentResume.id}
             />
           </Card>
@@ -386,16 +410,39 @@ export default function ResumeBuilderPage() {
 
                 {/* Footer with Export Options */}
                 <div className="border-t border-neutral-200 p-6 bg-neutral-50 shrink-0">
-                  <ExportOptions resume={currentResume} />
+                  <ExportOptions
+                    resume={currentResume}
+                    templateId={selectedTemplate}
+                    onNotify={notify}
+                  />
                 </div>
               </Tabs>
             </div>
 
             {/* Right Side: Preview */}
-            <ResumePreview resume={previewResume} templateId={selectedTemplate} />
+            <ResumePreview resume={currentResume} templateId={selectedTemplate} />
           </div>
         )}
       </div>
+
+      {pendingDeleteId && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/25 px-4">
+          <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-5 shadow-xl">
+            <h2 className="text-base font-semibold text-neutral-950">Delete resume?</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              This removes the saved resume from this browser.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setPendingDeleteId(null)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" onClick={() => handleDeleteResume(pendingDeleteId)}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

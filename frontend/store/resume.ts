@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Resume, defaultResume } from "@/lib/resume/types";
+import { Resume, ResumeTemplateId, defaultResume } from "@/lib/resume/types";
 
 interface ResumeStore {
   // Current resume being edited
@@ -15,8 +15,8 @@ interface ResumeStore {
   updateSavedResume: (id: string, updates: Partial<Resume>) => void;
 
   // UI state
-  selectedTemplate: "modern" | "classic" | "minimal";
-  setSelectedTemplate: (template: "modern" | "classic" | "minimal") => void;
+  selectedTemplate: ResumeTemplateId;
+  setSelectedTemplate: (template: ResumeTemplateId) => void;
 
   // Reset
   reset: () => void;
