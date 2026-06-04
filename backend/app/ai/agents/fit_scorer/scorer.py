@@ -1,4 +1,5 @@
 import asyncio
+import re
 from dataclasses import dataclass
 
 from app.ai.embeddings.embed import embed_text
@@ -41,9 +42,19 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
         get_user_experience_years(user_id),
     )
 
-    # Skill match — Jaccard similarity on lowercase word tokens
-    jd_words = {w for skill in jd_skills for w in skill.lower().split()}
-    cv_words = {w for text in cv_skills_texts for w in text.lower().split()}
+    # Skill match — Jaccard similarity on lowercase word tokens, punctuation stripped
+    # Without stripping, "python," != "python" and every comma-separated skill misses
+    def _tokens(texts: list[str]) -> set[str]:
+        tokens = set()
+        for text in texts:
+            for w in text.lower().split():
+                clean = re.sub(r"[^\w+#]", "", w)  # keep +/# for c++, c#
+                if clean:
+                    tokens.add(clean)
+        return tokens
+
+    jd_words = _tokens(jd_skills)
+    cv_words = _tokens(cv_skills_texts)
     union = jd_words | cv_words
     skill_match = min(100, round(len(jd_words & cv_words) / len(union) * 100)) if union else 0
 
