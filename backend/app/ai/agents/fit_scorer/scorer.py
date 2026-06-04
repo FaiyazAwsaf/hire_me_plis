@@ -16,8 +16,8 @@ from .extractor import extract_jd_skills, extract_years_required
 @dataclass
 class FitScoreResult:
     score: int           # 0-100 weighted total
-    skill_match: int     # 0-100 Jaccard on word tokens [40%]
-    semantic_match: int  # 0-100 avg cosine of top-3 experience chunks [40%]
+    skill_match: int     # 0-100 recall: % of JD skills in CV [30%]
+    semantic_match: int  # 0-100 avg cosine of top-5 chunks across all sections [50%]
     experience_match: int  # 0-100 linear scale against required years [20%]
     explanation: str     # 2-3 sentences from Claude, grounded in CV context
 
@@ -35,12 +35,17 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
         embed_text(jd_text),
     )
 
-    # Round 2 — three Qdrant reads that all depend on jd_vector from Round 1
-    cv_skills_texts, experience_results, cv_years = await asyncio.gather(
+    # Round 2 — four Qdrant reads that all depend on jd_vector from Round 1
+    cv_skills_texts, semantic_results, cv_years, all_sections = await asyncio.gather(
         scroll_section_texts(user_id, "skills"),
-        search_chunks(jd_vector, user_id, top_k=5, section="experience"),
+        search_chunks(jd_vector, user_id, top_k=5),  # search all sections (no filter)
         get_user_experience_years(user_id),
+        asyncio.gather(
+            search_chunks(jd_vector, user_id, top_k=3, section="experience"),
+            search_chunks(jd_vector, user_id, top_k=2, section="projects"),
+        ),
     )
+    experience_results, project_results = all_sections
 
     # Skill match — recall: what % of JD-required skills appear in the CV
     # Jaccard (intersection/union) penalises comprehensive CVs because their large
@@ -59,11 +64,13 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
     cv_words = _tokens(cv_skills_texts)
     skill_match = min(100, round(len(jd_words & cv_words) / len(jd_words) * 100)) if jd_words else 0
 
-    # Semantic match — average cosine score of the top-3 experience chunks
-    top3 = experience_results[:3]
-    semantic_match = (
-        min(100, round(sum(r.score for r in top3) / len(top3) * 100)) if top3 else 0
-    )
+    # Semantic match — average of top-5 chunks across ALL sections (experience + projects + skills)
+    # Skills chunks boost the score because they contain explicit tech keywords that JDs mention
+    if semantic_results:
+        semantic_avg = sum(r.score for r in semantic_results) / len(semantic_results)
+        semantic_match = min(100, round(semantic_avg * 100))
+    else:
+        semantic_match = 0
 
     # Experience match — linear scale; neutral 80 when JD states no requirement
     if years_required is None:
@@ -73,10 +80,10 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
     else:
         experience_match = min(100, round(cv_years / years_required * 100))
 
-    total = round(0.4 * skill_match + 0.4 * semantic_match + 0.2 * experience_match)
+    total = round(0.3 * skill_match + 0.5 * semantic_match + 0.2 * experience_match)
 
-    # Claude Sonnet writes the explanation, grounded in actual CV context
-    cv_context = build_context(experience_results)
+    # Claude Sonnet writes the explanation, grounded in actual CV context (experience + projects)
+    cv_context = build_context(experience_results + project_results)
     explanation = await generate(
         prompt=fit_score_explanation_prompt(
             score=total,
