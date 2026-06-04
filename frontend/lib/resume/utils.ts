@@ -79,6 +79,11 @@ function escapeHtml(value: string | undefined): string {
     .replaceAll("'", "&#039;");
 }
 
+function externalHref(url: string | undefined): string {
+  if (!url) return "";
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
+
 function linesToList(text: string): string {
   const lines = text
     .split(/\r?\n/)
@@ -121,15 +126,22 @@ function documentShell(title: string, styles: string, body: string): string {
 
 function contactLine(resume: Resume): string {
   const { personalInfo } = resume;
+  const links = [
+    { label: "LinkedIn", href: personalInfo.linkedin },
+    { label: "GitHub", href: personalInfo.github },
+    { label: "Portfolio", href: personalInfo.portfolio },
+  ].filter((link) => link.href);
+
   return [
-    personalInfo.email,
-    personalInfo.phone,
-    personalInfo.address,
-    personalInfo.linkedin ? "LinkedIn" : "",
-    personalInfo.github ? "GitHub" : "",
+    personalInfo.email ? `<span>${escapeHtml(personalInfo.email)}</span>` : "",
+    personalInfo.phone ? `<span>${escapeHtml(personalInfo.phone)}</span>` : "",
+    personalInfo.address ? `<span>${escapeHtml(personalInfo.address)}</span>` : "",
+    ...links.map(
+      (link) =>
+        `<a href="${escapeHtml(externalHref(link.href))}" target="_blank" rel="noopener noreferrer">${link.label}</a>`
+    ),
   ]
     .filter(Boolean)
-    .map((item) => `<span>${escapeHtml(item)}</span>`)
     .join("");
 }
 
@@ -168,8 +180,53 @@ function educationEntries(resume: Resume): string {
     .join("");
 }
 
+function skillEntries(resume: Resume): string {
+  return resume.skills.map((skill) => `<li>${escapeHtml(skill.name)}</li>`).join("");
+}
+
+function projectEntries(resume: Resume): string {
+  return resume.projects
+    .map(
+      (project) => `
+        <div class="project">
+          <p>
+            <strong>
+              ${
+                project.link
+                  ? `<a href="${escapeHtml(externalHref(project.link))}" target="_blank" rel="noopener noreferrer">${escapeHtml(project.name)}</a>`
+                  : escapeHtml(project.name)
+              }
+            </strong>
+          </p>
+          <p>${escapeHtml(project.description)}</p>
+          ${project.technologies.length ? `<p class="muted">${project.technologies.map((tech) => escapeHtml(tech)).join(", ")}</p>` : ""}
+        </div>`
+    )
+    .join("");
+}
+
+function certificationEntries(resume: Resume): string {
+  return resume.certifications
+    .map(
+      (cert) => `
+        <div class="certification">
+          <div class="entry-head">
+            <strong>${escapeHtml(cert.name)}</strong>
+            <span>${formatDate(cert.date)}</span>
+          </div>
+          <p>${escapeHtml(cert.issuer)}</p>
+          ${
+            cert.link
+              ? `<a class="muted" href="${escapeHtml(externalHref(cert.link))}" target="_blank" rel="noopener noreferrer">View credential</a>`
+              : ""
+          }
+        </div>`
+    )
+    .join("");
+}
+
 function generateModernTemplate(resume: Resume): string {
-  const { personalInfo, skills, education, experience, projects } = resume;
+  const { personalInfo, skills, education, experience, projects, certifications } = resume;
   const styles = `
     body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.42; }
     .page { display: grid; grid-template-columns: 62mm 1fr; }
@@ -185,6 +242,10 @@ function generateModernTemplate(resume: Resume): string {
     .entry-head { display: flex; justify-content: space-between; gap: 12px; }
     .entry-head span { color: #a10f58; font-size: 10px; }
     .skills { padding-left: 13px; }
+    .contact { display: flex; flex-direction: column; gap: 5px; }
+    .contact a { color: white; text-decoration: underline; text-underline-offset: 2px; }
+    .muted { color: #525252; }
+    .project, .certification { margin-bottom: 10px; }
   `;
   const body = `
     <div class="page">
@@ -194,17 +255,15 @@ function generateModernTemplate(resume: Resume): string {
         ${personalInfo.summary ? `<p>${escapeHtml(personalInfo.summary)}</p>` : ""}
         <h2>Personal details</h2>
         <div class="contact">
-          ${personalInfo.email ? `<p>${escapeHtml(personalInfo.email)}</p>` : ""}
-          ${personalInfo.phone ? `<p>${escapeHtml(personalInfo.phone)}</p>` : ""}
-          ${personalInfo.address ? `<p>${escapeHtml(personalInfo.address)}</p>` : ""}
+          ${contactLine(resume)}
         </div>
-        ${skills.length ? `<h2>Skills</h2><ul class="skills">${skills.map((skill) => `<li>${escapeHtml(skill.name)}</li>`).join("")}</ul>` : ""}
+        ${skills.length ? `<h2>Skills</h2><ul class="skills">${skillEntries(resume)}</ul>` : ""}
       </aside>
       <main>
-        ${personalInfo.summary ? `<section class="section"><h2 class="section-title">Profile</h2><p>${escapeHtml(personalInfo.summary)}</p></section>` : ""}
         ${experience.length ? `<section class="section"><h2 class="section-title">Employment</h2>${employmentEntries(resume)}</section>` : ""}
         ${education.length ? `<section class="section"><h2 class="section-title">Education</h2>${educationEntries(resume)}</section>` : ""}
-        ${projects.length ? `<section class="section"><h2 class="section-title">Projects</h2>${projects.map((project) => `<p><strong>${escapeHtml(project.name)}</strong><br>${escapeHtml(project.description)}</p>`).join("")}</section>` : ""}
+        ${projects.length ? `<section class="section"><h2 class="section-title">Projects</h2>${projectEntries(resume)}</section>` : ""}
+        ${certifications.length ? `<section class="section"><h2 class="section-title">Certifications</h2>${certificationEntries(resume)}</section>` : ""}
       </main>
     </div>`;
 
@@ -212,7 +271,7 @@ function generateModernTemplate(resume: Resume): string {
 }
 
 function generateClassicTemplate(resume: Resume): string {
-  const { personalInfo, education, experience, skills } = resume;
+  const { personalInfo, education, experience, skills, projects, certifications } = resume;
   const styles = `
     body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; }
     .page { padding: 14mm 18mm; }
@@ -226,6 +285,9 @@ function generateClassicTemplate(resume: Resume): string {
     .entry { display: grid; grid-template-columns: 42mm 1fr; gap: 8mm; margin-bottom: 10px; }
     .entry-head { display: block; }
     .entry-head span { display: block; color: #444; }
+    .links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .project, .certification { margin-bottom: 10px; }
+    .muted { color: #525252; }
     p { margin: 0 0 4px; }
   `;
   const body = `
@@ -234,6 +296,7 @@ function generateClassicTemplate(resume: Resume): string {
         ${personalInfo.avatar ? `<img class="avatar" src="${personalInfo.avatar}" alt="" />` : ""}
         <h1>${escapeHtml(personalInfo.fullName || "Your Name")}</h1>
         ${personalInfo.summary ? `<p>${escapeHtml(personalInfo.summary)}</p>` : ""}
+        <div class="links">${contactLine(resume)}</div>
       </header>
       <section class="box">
         <h2 class="box-title">Personal details</h2>
@@ -241,12 +304,14 @@ function generateClassicTemplate(resume: Resume): string {
           <strong>Email address</strong><span>${escapeHtml(personalInfo.email)}</span>
           <strong>Phone number</strong><span>${escapeHtml(personalInfo.phone)}</span>
           <strong>Address</strong><span>${escapeHtml(personalInfo.address)}</span>
+          <strong>Links</strong><span class="links">${contactLine(resume)}</span>
         </div>
       </section>
-      ${personalInfo.summary ? `<section class="box"><h2 class="box-title">Profile</h2><div class="box-content"><p>${escapeHtml(personalInfo.summary)}</p></div></section>` : ""}
       ${experience.length ? `<section class="box"><h2 class="box-title">Employment</h2><div class="box-content">${employmentEntries(resume)}</div></section>` : ""}
       ${education.length ? `<section class="box"><h2 class="box-title">Education</h2><div class="box-content">${educationEntries(resume)}</div></section>` : ""}
-      ${skills.length ? `<section class="box"><h2 class="box-title">Skills</h2><div class="box-content">${skills.map((skill) => escapeHtml(skill.name)).join(", ")}</div></section>` : ""}
+      ${skills.length ? `<section class="box"><h2 class="box-title">Skills</h2><div class="box-content"><ul>${skillEntries(resume)}</ul></div></section>` : ""}
+      ${projects.length ? `<section class="box"><h2 class="box-title">Projects</h2><div class="box-content">${projectEntries(resume)}</div></section>` : ""}
+      ${certifications.length ? `<section class="box"><h2 class="box-title">Certifications</h2><div class="box-content">${certificationEntries(resume)}</div></section>` : ""}
     </div>`;
 
   return documentShell(resume.title, styles, body);
@@ -269,6 +334,8 @@ function generateProfessionalTemplate(resume: Resume): string {
     .entry { display: grid; grid-template-columns: 27mm 1fr; gap: 6mm; margin-bottom: 10px; }
     .entry-head { display: flex; justify-content: space-between; gap: 8px; }
     .entry-head span { color: #525252; font-size: 10px; }
+    .project, .certification { margin-bottom: 10px; }
+    .muted { color: #525252; }
     p { margin: 0 0 4px; }
   `;
   const body = `
@@ -285,14 +352,13 @@ function generateProfessionalTemplate(resume: Resume): string {
       </header>
       <div class="body">
         <main>
-          ${personalInfo.summary ? `<section class="section"><h2 class="section-title">Profile</h2><p>${escapeHtml(personalInfo.summary)}</p></section>` : ""}
           ${experience.length ? `<section class="section"><h2 class="section-title">Employment</h2>${employmentEntries(resume)}</section>` : ""}
           ${education.length ? `<section class="section"><h2 class="section-title">Education</h2>${educationEntries(resume)}</section>` : ""}
-          ${projects.length ? `<section class="section"><h2 class="section-title">Projects</h2>${projects.map((project) => `<p><strong>${escapeHtml(project.name)}</strong><br>${escapeHtml(project.description)}</p>`).join("")}</section>` : ""}
+          ${projects.length ? `<section class="section"><h2 class="section-title">Projects</h2>${projectEntries(resume)}</section>` : ""}
+          ${certifications.length ? `<section class="section"><h2 class="section-title">Certifications</h2>${certificationEntries(resume)}</section>` : ""}
         </main>
         <aside>
-          ${certifications.length ? `<section class="section"><h2>Professional Affiliations</h2>${certifications.map((cert) => `<p><strong>${escapeHtml(cert.name)}</strong><br>${escapeHtml(cert.issuer)}<br>${formatDate(cert.date)}</p>`).join("")}</section>` : ""}
-          ${skills.length ? `<section class="section"><h2>Skills</h2><ul>${skills.map((skill) => `<li>${escapeHtml(skill.name)}</li>`).join("")}</ul></section>` : ""}
+          ${skills.length ? `<section class="section"><h2>Skills</h2><ul>${skillEntries(resume)}</ul></section>` : ""}
         </aside>
       </div>
     </div>`;
