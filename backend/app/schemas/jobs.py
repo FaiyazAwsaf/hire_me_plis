@@ -15,6 +15,7 @@ class JobCard(BaseModel):
     salary_range: str | None = None
     deadline: date | None = None
     url: str
+    source_platform: str | None = None  
     fit_score: int
     fit_reasoning: str
 

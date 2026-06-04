@@ -9,11 +9,6 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8)
 
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
 class RefreshRequest(BaseModel):
     token: str
 

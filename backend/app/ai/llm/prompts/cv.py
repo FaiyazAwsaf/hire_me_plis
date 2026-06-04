@@ -11,12 +11,18 @@ Respond ONLY with valid JSON in this exact format: {{"role_title": "...", "exper
 
 def section_classifier_prompt(text: str) -> str:
     return f"""You are a CV/resume parser. Given the following text extracted from a CV, \
-classify each paragraph into one of these sections:
+classify each meaningful block into one of these sections:
 experience, education, skills, projects, certifications, personal, summary
+
+Rules:
+- Copy the EXACT original text for each block — do NOT paraphrase, summarize, or omit any words
+- SKIP blocks that are only a bare section heading (e.g. "SKILLS", "EXPERIENCE", "EDUCATION") with no content
+- Classify language proficiency (e.g. "English – IELTS 8.0") under "personal", not "skills"
+- If a block contains a comma-separated list of technologies, preserve every item exactly as written
 
 Return a JSON array where each item has:
 - "section": one of the above labels
-- "text": the original paragraph text
+- "text": the exact original text, unchanged
 
 CV TEXT:
 {text}
