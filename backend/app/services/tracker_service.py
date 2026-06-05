@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.application import Application, ApplicationStatus
+from app.models.application import Application
 from app.models.calendar_event import CalendarEvent
 from app.models.goal import Goal
 from app.schemas.tracker import (
