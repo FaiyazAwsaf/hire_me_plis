@@ -15,10 +15,13 @@ _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Yield a database session; always closes it after the request completes."""
+    """Yield a database session; rolls back on error, always closes after request."""
     session = AsyncSessionLocal()
     try:
         yield session
+    except Exception:
+        await session.rollback()
+        raise
     finally:
         await session.close()
 
