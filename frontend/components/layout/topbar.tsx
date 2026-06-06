@@ -215,17 +215,6 @@ export function Topbar() {
                 </p>
               </div>
 
-              <div className="p-1.5 space-y-0.5">
-                <Link
-                  href="/settings"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-none font-sans text-xs font-bold text-neutral-800 hover:bg-neutral-50 transition-all"
-                >
-                  <Settings className="h-3.5 w-3.5" />
-                  <span>Account Settings</span>
-                </Link>
-              </div>
-
               <div className="p-1.5 border-t border-black/20 bg-neutral-50/50">
                 <button
                   onClick={handleLogout}
