@@ -22,9 +22,10 @@ const NAV_ITEMS = [
   { href: "/chat",      label: "AI Assistant", icon: MessageSquare },
   { href: "/tracker",   label: "Tracker",     icon: KanbanSquare },
   { 
-    href: "/cv",        
+    href: "/cv/upload",       
     label: "Resume",  
     icon: FileText,
+    triggerKey: "/cv", 
     children: [
       { href: "/cv/upload", label: "Resume Uploader" },
       { href: "/cv/builder", label: "Resume Builder" },
@@ -39,12 +40,12 @@ export function Sidebar() {
 
   const isRouteActive = (href: string) => {
     if (href === "/dashboard") return pathname === href;
-    return pathname.startsWith(href);
+    return pathname.startsWith(href) || (href === "/cv/upload" && pathname.startsWith("/cv"));
   };
 
-  const toggleExpanded = (href: string) => {
+  const toggleExpanded = (key: string) => {
     setExpandedItems(prev => 
-      prev.includes(href) ? prev.filter(h => h !== href) : [...prev, href]
+      prev.includes(key) ? prev.filter(h => h !== key) : [...prev, key]
     );
   };
 
@@ -55,23 +56,21 @@ export function Sidebar() {
         isExpanded ? "w-60" : "w-16"
       )}
     >
-      {/* --- LOGO / TOGGLE AREA --- */}
-      <div className="flex items-center h-14 px-4 border-b-2 border-black justify-between gap-2 overflow-hidden">
+      {/* --- TOGGLE AREA (BORDER LINE REMOVED) --- */}
+      <div className={cn(
+        "flex items-center h-14 px-4 gap-2 overflow-hidden",
+        isExpanded ? "justify-end" : "justify-center"
+      )}>
         {isExpanded ? (
-          <>
-            <span className="font-serif font-black text-base tracking-tight truncate text-neutral-900 animate-in fade-in duration-200 uppercase">
-              Hire Me Plis
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-none border border-black bg-white/40 text-[#1A1A1A] hover:bg-white"
-              onClick={() => setIsExpanded(false)}
-              title="Minimize sidebar"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          </>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-none border border-black bg-white/40 text-[#1A1A1A] hover:bg-white"
+            onClick={() => setIsExpanded(false)}
+            title="Minimize sidebar"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
         ) : (
           <Button
             variant="ghost"
@@ -91,40 +90,53 @@ export function Sidebar() {
           const active = isRouteActive(item.href);
           const Icon = item.icon;
           const hasChildren = "children" in item && item.children;
-          const isItemExpanded = expandedItems.includes(item.href);
+          const targetKey = "triggerKey" in item ? item.triggerKey : item.href;
+          const isItemExpanded = expandedItems.includes(targetKey);
           
           return (
             <div key={item.href}>
               {hasChildren ? (
-                <button
-                  onClick={() => toggleExpanded(item.href)}
-                  className={cn(
-                    "w-full flex items-center gap-3 rounded-none px-3 py-2.5 text-sm font-bold transition-all duration-150 group relative",
-                    active
-                      ? "border-2 border-black bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)]"
-                      : "text-neutral-700 hover:bg-white/50 hover:text-black"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  
-                  {isExpanded && (
-                    <>
+                <div className="relative group flex items-center w-full">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-none px-3 py-2.5 text-sm font-bold transition-all duration-150 relative pr-10",
+                      active
+                        ? "border-2 border-black bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                        : "text-neutral-700 hover:bg-white/50 hover:text-black"
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    
+                    {isExpanded && (
                       <span className="truncate font-sans font-bold">
                         {item.label}
                       </span>
+                    )}
+
+                    {!isExpanded && active && (
+                      <div className="absolute left-0 w-1 h-4 bg-black rounded-r-none" />
+                    )}
+                  </Link>
+
+                  {hasChildren && isExpanded && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleExpanded(targetKey);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-neutral-500 hover:text-black transition-colors"
+                      aria-label="Toggle submenu"
+                    >
                       <ChevronDown 
                         className={cn(
-                          "h-4 w-4 shrink-0 ml-auto transition-transform duration-200",
+                          "h-4 w-4 transition-transform duration-200",
                           isItemExpanded && "rotate-180"
                         )}
                       />
-                    </>
+                    </button>
                   )}
-
-                  {!isExpanded && active && (
-                    <div className="absolute left-0 w-1 h-4 bg-black rounded-r-none" />
-                  )}
-                </button>
+                </div>
               ) : (
                 <Link
                   href={item.href}
@@ -154,7 +166,7 @@ export function Sidebar() {
               {hasChildren && isItemExpanded && isExpanded && (
                 <div className="pl-6 space-y-1 mt-1 border-l border-neutral-400 ml-5">
                   {item.children.map((child) => {
-                    const childActive = isRouteActive(child.href);
+                    const childActive = pathname === child.href;
                     return (
                       <Link
                         key={child.href}
