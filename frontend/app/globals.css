@@ -122,7 +122,9 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(to right, #D7E3D9, #FDF5EF, #F2DFD3);
+    min-height: 100%;
   }
   html {
     @apply font-sans;

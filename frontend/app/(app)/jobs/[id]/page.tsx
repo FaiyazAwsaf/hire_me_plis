@@ -98,14 +98,17 @@ function JobDetailContent() {
   const currentQuery = searchParams.get("q") || "";
   const job = REASONING_DETAILS_DB[id as string];
 
-  // Dynamically build back navigation path keeping parameter tags clean
   const backPath = currentQuery ? `/jobs?q=${encodeURIComponent(currentQuery)}` : "/jobs";
 
   if (!job) {
     return (
-      <div className="text-center py-12 space-y-4">
-        <p className="text-sm text-muted-foreground">Analysis data profile not found.</p>
-        <Button variant="outline" onClick={() => router.push(backPath)}>
+      <div className="w-full min-h-[calc(100vh-64px)] bg-[#FDFBF9] flex flex-col items-center justify-center p-6 text-center">
+        <p className="font-mono text-xs font-bold uppercase text-neutral-500 mb-4">Analysis data profile not found.</p>
+        <Button 
+          variant="outline" 
+          onClick={() => router.push(backPath)}
+          className="rounded-none border-2 border-black bg-white font-mono text-xs font-black uppercase text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50"
+        >
           Return to Job Hunter
         </Button>
       </div>
@@ -113,142 +116,130 @@ function JobDetailContent() {
   }
 
   return (
-    <div className="relative isolate mx-auto max-w-2xl animate-in fade-in duration-200 text-left">
-      <PageLightPillars />
-      <div className="relative z-10 space-y-6 rounded-[28px] border border-white/55 bg-white/38 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
+    <div className="w-full min-h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
       
-      {/* Back button preserving query parameter states */}
-      <Link href={backPath} className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back to Job List</span>
-      </Link>
+      {/* GRID CANVAS LAYER */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-0 opacity-[0.07]" 
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #1A1A1A 1px, transparent 1px),
+            linear-gradient(to bottom, #1A1A1A 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }}
+      />
 
-      <div className="flex flex-col items-start justify-between gap-4 border-b border-white/60 pb-5 sm:flex-row">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs font-bold text-red-500 uppercase tracking-wide">
-            <Sparkles className="h-3.5 w-3.5 fill-red-500/10" />
-            <span>Agent RAG Deep Alignment Audit</span>
-          </div>
-          <h1 className="text-2xl font-black text-neutral-900 mt-1 leading-tight">{job.role}</h1>
-          <p className="text-sm font-medium text-neutral-500">{job.company}</p>
-          
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-500 mt-3 font-medium">
-            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.location}</span>
-            <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> {job.salaryRange}</span>
-          </div>
-        </div>
-
-        <div className={cn(
-          "h-16 w-16 rounded-2xl flex flex-col items-center justify-center font-mono font-black border shadow-sm shrink-0 self-start",
-          job.fitScore >= 85 ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xl" :
-          job.fitScore >= 70 ? "bg-amber-50 text-amber-700 border-amber-200 text-xl" :
-          "bg-rose-50 text-rose-700 border-rose-200 text-xl"
-        )}>
-          <span>{job.fitScore}%</span>
-          <span className="text-[8px] uppercase font-sans tracking-tighter -mt-1 opacity-70">Match</span>
-        </div>
-      </div>
-
-      <div className="space-y-1.5 rounded-2xl border border-white/60 bg-white/50 p-4 shadow-inner backdrop-blur-xl">
-        <div className="text-xs font-bold text-neutral-800 uppercase tracking-wider">AI Verdict Score Summary</div>
-        <div className="text-sm font-black text-neutral-900">&ldquo;{job.verdict}&rdquo;</div>
-        <p className="text-xs leading-relaxed text-neutral-600">{job.summary}</p>
-      </div>
-
-      <div className="space-y-2.5">
-        <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Alignment Strengths (Grounded in your CV)</span>
-        </h3>
-        <div className="space-y-1.5">
-          {job.strengths.map((strength: string, i: number) => (
-            <div key={i} className="rounded-xl border border-emerald-100/70 bg-emerald-50/45 p-3 text-xs leading-relaxed text-neutral-700 backdrop-blur">
-              {strength}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1">
-          <XCircle className="h-4 w-4 shrink-0" />
-          <span>Skill Gaps & Missing Benchmark Nodes</span>
-        </h3>
-        <div className="space-y-1.5">
-          {job.gaps.map((gap: string, i: number) => (
-            <div key={i} className="rounded-xl border border-amber-100/70 bg-amber-50/45 p-3 text-xs leading-relaxed text-neutral-700 backdrop-blur">
-              {gap}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center justify-between gap-4 border-t border-white/60 pt-4 sm:flex-row">
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <Calendar className="h-3.5 w-3.5" />
-          <span>Application Window Deadline: <strong className="text-neutral-700 font-semibold">{job.deadline}</strong></span>
-        </div>
+      {/* EXPANDED CONTAINER MATCHING THE DASHBOARD max-w-5xl PLANES */}
+      <div className="relative z-10 mx-auto max-w-5xl animate-in fade-in duration-200 text-left">
         
-        <a
-          href={job.externalUrl}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "w-full sm:w-auto bg-slate-900 text-white hover:bg-slate-800 rounded-xl px-6 py-2.5 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 shadow-sm"
-          )}
-        >
-          <span>Apply on External Board</span>
-          <ArrowUpRight className="h-4 w-4 shrink-0" />
-        </a>
-      </div>
+        {/* MAIN WORKSPACE SHEET */}
+        <div className="space-y-8 rounded-none border-2 border-black bg-white p-6 shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:p-10">
+          
+          {/* BACK ARROW LINK */}
+          <Link href={backPath} className="inline-flex items-center gap-2 font-mono text-xs font-black uppercase tracking-widest text-neutral-400 hover:text-black transition-colors">
+            <ArrowLeft className="h-4 w-4 stroke-[3px]" />
+            <span>Back to Job List</span>
+          </Link>
 
+          {/* MAIN HEADER ROW */}
+          <div className="flex flex-col items-start justify-between gap-6 border-b-2 border-black pb-6 sm:flex-row">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 font-mono text-xs font-black text-neutral-500 uppercase tracking-widest">
+                <Sparkles className="h-4 w-4 text-black" />
+                <span>Agent RAG Alignment Audit</span>
+              </div>
+              <h1 className="font-serif text-3xl md:text-4xl font-black text-neutral-900 leading-tight tracking-tight">{job.role}</h1>
+              <p className="font-mono text-sm font-black text-neutral-400 uppercase tracking-widest">{job.company}</p>
+              
+              <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-xs font-bold text-neutral-500 uppercase pt-2">
+                <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-black" /> {job.location}</span>
+                <span className="flex items-center gap-1.5"><DollarSign className="h-4 w-4 text-black" /> {job.salaryRange}</span>
+              </div>
+            </div>
+
+            <div className={cn(
+              "h-16 w-16 rounded-none flex flex-col items-center justify-center font-mono font-black border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] shrink-0 self-start text-lg",
+              job.fitScore >= 85 ? "bg-emerald-50 text-emerald-900" :
+              job.fitScore >= 70 ? "bg-amber-50 text-amber-900" :
+              "bg-rose-50 text-rose-900"
+            )}>
+              <span className="leading-none">{job.fitScore}%</span>
+              <span className="text-[8px] font-sans font-bold uppercase tracking-tight opacity-70 mt-0.5">Match</span>
+            </div>
+          </div>
+
+          {/* VERDICT CONTAINER */}
+          <div className="space-y-1.5 rounded-none border-2 border-black bg-neutral-50 p-5 md:p-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+            <div className="font-mono text-[10px] font-black text-neutral-400 uppercase tracking-wider">AI Verdict Summary</div>
+            <div className="font-serif text-base md:text-lg font-black text-neutral-900">&ldquo;{job.verdict}&rdquo;</div>
+            <p className="font-sans text-sm leading-relaxed text-neutral-700 mt-1.5">{job.summary}</p>
+          </div>
+
+          {/* STRENGTHS */}
+          <div className="space-y-3">
+            <h3 className="font-mono text-xs font-black text-neutral-900 uppercase tracking-widest flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+              <span>Alignment Strengths (CV Grounded)</span>
+            </h3>
+            <div className="space-y-3">
+              {job.strengths.map((strength: string, i: number) => (
+                <div key={i} className="rounded-none border border-black bg-emerald-50/30 p-4 font-sans text-sm leading-relaxed text-neutral-800 shadow-sm">
+                  {strength}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* GAPS */}
+          <div className="space-y-3">
+            <h3 className="font-mono text-xs font-black text-neutral-900 uppercase tracking-widest flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-amber-700 shrink-0" />
+              <span>Skill Gaps & Benchmark Deficits</span>
+            </h3>
+            <div className="space-y-3">
+              {job.gaps.map((gap: string, i: number) => (
+                <div key={i} className="rounded-none border border-black bg-amber-50/30 p-4 font-sans text-sm leading-relaxed text-neutral-800 shadow-sm">
+                  {gap}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* FOOTER ACTION ROW */}
+          <div className="flex flex-col items-center justify-between gap-4 border-t-2 border-black pt-6 sm:flex-row">
+            <div className="font-mono text-xs text-neutral-400 font-bold uppercase tracking-wider flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-black" />
+              <span>Window Deadline: <strong className="text-neutral-900 font-black">{job.deadline}</strong></span>
+            </div>
+            
+            <a
+              href={job.externalUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "w-full sm:w-auto h-12 rounded-none border-2 border-black bg-black text-white hover:bg-neutral-800 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+              )}
+            >
+              <span>Apply on External Board</span>
+              <ArrowUpRight className="h-4 w-4 shrink-0 stroke-[2.5px]" />
+            </a>
+          </div>
+
+        </div>
       </div>
     </div>
   );
 }
 
-function PageLightPillars() {
-  return (
-    <>
-      <div className="pointer-events-none absolute inset-[-6rem] z-0 overflow-hidden rounded-[40px]" aria-hidden="true">
-        <div className="page-light-pillar page-light-pillar-primary absolute left-[8%] top-[-18%] h-[680px] w-44 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(79,70,229,0.10)_12%,rgba(129,140,248,0.30)_42%,rgba(196,181,253,0.18)_70%,transparent_100%)] blur-3xl" />
-        <div className="page-light-pillar page-light-pillar-secondary absolute right-[12%] top-[-20%] h-[720px] w-52 rounded-full bg-[linear-gradient(180deg,transparent_0%,rgba(196,181,253,0.12)_16%,rgba(129,140,248,0.26)_46%,rgba(79,70,229,0.14)_74%,transparent_100%)] blur-3xl" />
-      </div>
-      <style jsx>{`
-        .page-light-pillar {
-          opacity: 0.82;
-          transform: translate3d(0, 0, 0);
-          will-change: transform;
-        }
-        .page-light-pillar-primary {
-          animation: page-light-pillar-primary 34s ease-in-out infinite alternate;
-        }
-        .page-light-pillar-secondary {
-          animation: page-light-pillar-secondary 38s ease-in-out infinite alternate;
-        }
-        @keyframes page-light-pillar-primary {
-          from { transform: translate3d(0, 0, 0) scaleY(1); }
-          to { transform: translate3d(22px, 26px, 0) scaleY(1.07); }
-        }
-        @keyframes page-light-pillar-secondary {
-          from { transform: translate3d(0, 0, 0) scaleY(1); }
-          to { transform: translate3d(-24px, 30px, 0) scaleY(1.06); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .page-light-pillar {
-            animation: none;
-            will-change: auto;
-          }
-        }
-      `}</style>
-    </>
-  );
-}
-
 export default function JobDetailPage() {
   return (
-    <Suspense fallback={<div className="text-center text-xs text-muted-foreground pt-12">Loading assessment parameters...</div>}>
+    <Suspense fallback={
+      <div className="w-full min-h-[calc(100vh-64px)] bg-[#FDFBF9] flex items-center justify-center font-mono text-xs font-bold uppercase text-neutral-500">
+        Loading assessment parameters...
+      </div>
+    }>
       <JobDetailContent />
     </Suspense>
   );
