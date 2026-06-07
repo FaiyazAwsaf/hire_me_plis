@@ -46,20 +46,19 @@ function TrackerContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Real‑time current date (system clock)
+  // Real‑time date
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();      // 0‑based
+  const currentMonth = today.getMonth();
   const currentDayNumber = today.getDate();
   const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(currentDayNumber).padStart(2, "0")}`;
 
   // Calendar state: dynamic year and month (unbounded)
   const [displayYear, setDisplayYear] = useState(currentYear);
-  const [displayMonth, setDisplayMonth] = useState(currentMonth); // 0‑based
+  const [displayMonth, setDisplayMonth] = useState(currentMonth);
 
-  // Recompute calendar grid when month/year changes
   const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay(); // Sunday = 0
+  const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
 
   const goPrevMonth = () => {
     if (displayMonth === 0) {
@@ -104,7 +103,7 @@ function TrackerContent() {
   const [selectedAgendaDay, setSelectedAgendaDay] = useState<number>(currentDayNumber);
   const [selectedDayInspector, setSelectedDayInspector] = useState<number | null>(null);
 
-  // Load data – backend still only provides June–August 2026 data (no change)
+  // Load data
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -125,7 +124,7 @@ function TrackerContent() {
     loadData();
   }, [setApplications, setGoals, setEvents]);
 
-  // Drag & drop (unchanged)
+  // Drag & drop
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedAppId(id);
     e.dataTransfer.setData("text/plain", id);
@@ -174,6 +173,19 @@ function TrackerContent() {
     }
   };
 
+  // Delete application
+  const handleDeleteApplication = async (id: string, role: string, company: string) => {
+    const confirmDelete = window.confirm(`Delete application for "${role}" at ${company}?`);
+    if (!confirmDelete) return;
+    try {
+      await api.delete(`/applications/${id}`);
+      setApplications(applications.filter(app => app.id !== id));
+    } catch (err) {
+      console.error("Failed to delete application:", err);
+      alert("Failed to delete application. Please try again.");
+    }
+  };
+
   // Category dropdown
   const handleDropdownCategoryChange = (val: string) => {
     if (val === "ADD_NEW_OPTION_TRIGGER") {
@@ -185,7 +197,7 @@ function TrackerContent() {
     }
   };
 
-  // Add goal – past‑date validation uses real current date
+  // Add goal – no calendar event creation
   const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGoalTitle || !newGoalDate) return;
@@ -250,12 +262,12 @@ function TrackerContent() {
     }
   };
 
-  // Calendar click handler – only future/today (uses real date)
+  // Calendar click handler – only future/today
   const handleDayCellClick = (day: number) => {
     setSelectedAgendaDay(day);
     const clickedDate = new Date(displayYear, displayMonth, day);
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    if (clickedDate < todayMidnight) return; // past dates cannot be clicked to add
+    if (clickedDate < todayMidnight) return;
 
     const dayEvents = events.filter(e => {
       const d = new Date(e.start_dt);
@@ -279,7 +291,7 @@ function TrackerContent() {
     }
   };
 
-  // Reminders (goals due within 3 days from today)
+  // Reminders
   const activeReminders = goals.filter(goal => {
     if (goal.completed_at) return false;
     const targetDateObj = new Date(goal.target_date);
@@ -291,7 +303,7 @@ function TrackerContent() {
     return diff >= 0 && diff <= 3;
   });
 
-  // Inspector data for popup
+  // Inspector data
   const inspectorGoals = selectedDayInspector
     ? goals.filter(g => {
         const d = new Date(g.target_date);
@@ -362,8 +374,17 @@ function TrackerContent() {
           </div>
 
           {activeTab === "kanban" && (
-            <Button onClick={() => setShowAppForm(!showAppForm)} size="sm" className="flex h-10 items-center gap-2 rounded-none border-2 border-black bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors">
-              <Plus className="h-4 w-4 stroke-[3px]" />
+            <Button
+              onClick={() => setShowAppForm(!showAppForm)}
+              size="sm"
+              className={cn(
+                "flex h-10 items-center gap-2 rounded-none border-2 px-4 text-xs font-mono font-black uppercase transition-colors shadow-[2px_2px_0px_rgba(0,0,0,1)]",
+                showAppForm
+                  ? "border-red-600 bg-red-600 text-white hover:bg-red-700"
+                  : "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              {showAppForm ? <X className="h-4 w-4 stroke-[3px]" /> : <Plus className="h-4 w-4 stroke-[3px]" />}
               {showAppForm ? "Close Form" : "Add application"}
             </Button>
           )}
@@ -388,19 +409,31 @@ function TrackerContent() {
         {/* forms */}
         <div ref={formRef} className="space-y-4">
           {showAppForm && (
-            <div className="rounded-none border-2 border-black bg-neutral-50 p-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] animate-in slide-in-from-top-2 duration-200">
-              <form onSubmit={handleAddApplication} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Role Title</Label>
-                  <Input value={newRole} onChange={(e) => setNewRole(e.target.value)} placeholder="e.g. Frontend Developer" className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" required />
+            <div className="rounded-none border-2 border-black bg-neutral-50 p-5 shadow-[2px_2px_0px_rgba(0,0,0,1)] space-y-4 animate-in slide-in-from-top-2 duration-200">
+              <form onSubmit={handleAddApplication} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Role Title</Label>
+                    <Input value={newRole} onChange={(e) => setNewRole(e.target.value)} placeholder="e.g. Frontend Developer" className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Company Name</Label>
+                    <Input value={newCompany} onChange={(e) => setNewCompany(e.target.value)} placeholder="e.g. Stripe" className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" required />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Company Name</Label>
-                  <Input value={newCompany} onChange={(e) => setNewCompany(e.target.value)} placeholder="e.g. Stripe" className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" required />
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => setShowAppForm(false)}
+                    className="bg-red-600 text-white hover:bg-red-700 border-2 border-black rounded-none h-10 text-xs font-mono font-black uppercase px-5 shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                  >
+                    <X className="h-3.5 w-3.5 stroke-[3px]" />
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={saving} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-black rounded-none h-10 text-xs font-mono font-black uppercase px-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                    {saving ? "…" : "Add Application"}
+                  </Button>
                 </div>
-                <Button type="submit" disabled={saving} size="sm" className="h-10 rounded-none border-2 border-black bg-primary text-xs font-mono font-black uppercase text-primary-foreground hover:bg-primary/90 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-                  {saving ? "…" : "Add Application"}
-                </Button>
               </form>
             </div>
           )}
@@ -462,7 +495,7 @@ function TrackerContent() {
         <div className="flex max-w-md gap-1.5 rounded-none border-2 border-black bg-neutral-100 p-1.5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
           <button onClick={() => setActiveTab("kanban")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono font-black uppercase rounded-none transition-all border-2", activeTab === "kanban" ? "bg-primary text-primary-foreground border-primary shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "bg-transparent text-neutral-600 border-transparent hover:text-black")}>
             <KanbanSquare className="h-3.5 w-3.5 shrink-0" />
-            <span>Applications</span>
+            <span>Kanban</span>
           </button>
           <button onClick={() => setActiveTab("calendar")} className={cn("flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono font-black uppercase rounded-none transition-all border-2", activeTab === "calendar" ? "bg-primary text-primary-foreground border-primary shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "bg-transparent text-neutral-600 border-transparent hover:text-black")}>
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
@@ -494,13 +527,25 @@ function TrackerContent() {
                     </div>
                     <div className="min-h-[380px] flex-1 space-y-3 rounded-none border-2 border-black bg-white p-2 transition-all">
                       {columnApps.map((app) => (
-                        <div key={app.id} draggable onDragStart={(e) => handleDragStart(e, app.id)} className="space-y-2 rounded-none border-2 border-black bg-white p-3 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 cursor-grab active:cursor-grabbing group transition-all">
+                        <div key={app.id} draggable onDragStart={(e) => handleDragStart(e, app.id)} className="space-y-2 rounded-none border-2 border-black bg-white p-3 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 cursor-grab active:cursor-grabbing group transition-all relative">
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <h4 className="text-xs font-sans font-black text-black">{app.role}</h4>
                               <p className="text-[11px] font-sans font-bold text-neutral-600 mt-0.5">{app.company}</p>
                             </div>
-                            <GripVertical className="h-3.5 w-3.5 text-neutral-300 group-hover:text-black transition-colors shrink-0" />
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteApplication(app.id, app.role, app.company);
+                                }}
+                                className="p-1 text-neutral-300 hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                title="Delete application"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 stroke-[2.5px]" />
+                              </button>
+                              <GripVertical className="h-3.5 w-3.5 text-neutral-300 group-hover:text-black transition-colors shrink-0" />
+                            </div>
                           </div>
                           {app.deadline && <p className="text-[10px] text-neutral-500 font-mono">Due: {app.deadline}</p>}
                         </div>
@@ -519,22 +564,15 @@ function TrackerContent() {
 
           {activeTab === "calendar" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              {/* Dynamic calendar grid */}
               <div className="lg:col-span-2 rounded-none border-2 border-black bg-white p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
                 <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-3">
-                  <button
-                    onClick={goPrevMonth}
-                    className="p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors"
-                  >
+                  <button onClick={goPrevMonth} className="p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors">
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <span className="text-sm font-mono font-black text-black uppercase tracking-widest">
                     {monthNames[displayMonth]} {displayYear}
                   </span>
-                  <button
-                    onClick={goNextMonth}
-                    className="p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors"
-                  >
+                  <button onClick={goNextMonth} className="p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors">
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -590,7 +628,6 @@ function TrackerContent() {
                 </div>
               </div>
 
-              {/* Side agenda panel */}
               <div className="rounded-none border-2 border-black bg-neutral-50 p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] space-y-4 text-left">
                 <div className="border-b-2 border-black pb-2 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-black" />
