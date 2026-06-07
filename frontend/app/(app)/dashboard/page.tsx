@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,19 +17,34 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { useDashboardStore } from "@/store/dashboard";
+import type { CalendarEvent } from "@/store/tracker";
+
+// June 2026: day 1 falls on Sunday (start-of-week = 0 blanks)
+const JUNE_START_DOW = 0;
+const JUNE_DAYS = 30;
+const WEEK_HEADERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
 export default function DashboardPage() {
   const { stats, nudges, setStats, setNudges, markNudgeRead } = useDashboardStore();
+  const [calEvents, setCalEvents] = useState<CalendarEvent[]>([]);
+
+  const today = new Date();
+  const isJune2026 = today.getFullYear() === 2026 && today.getMonth() === 5;
+  const todayDay = isJune2026 ? today.getDate() : null;
+
+  // Leading blank cells + date cells for the June 2026 grid
+  const cells: (number | null)[] = [
+    ...Array<null>(JUNE_START_DOW).fill(null),
+    ...Array.from({ length: JUNE_DAYS }, (_, i) => i + 1),
+  ];
 
   useEffect(() => {
-    api
-      .get<typeof stats>("/dashboard/stats")
-      .then((r) => setStats(r.data!))
-      .catch(console.error);
-
-    api
-      .get<{ nudges: typeof nudges; unread_count: number }>("/nudges")
+    api.get<typeof stats>("/dashboard/stats").then((r) => setStats(r.data!)).catch(console.error);
+    api.get<{ nudges: typeof nudges; unread_count: number }>("/nudges")
       .then((r) => setNudges(r.data.nudges, r.data.unread_count))
+      .catch(console.error);
+    api.get<{ events: CalendarEvent[] }>("/calendar/events?start=2026-06-01&end=2026-06-30")
+      .then((r) => setCalEvents(r.data.events))
       .catch(console.error);
   }, []);
 
@@ -39,23 +54,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full min-h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
+    <div className="w-full min-h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
 
       {/* GRID CANVAS */}
       <div
         className="absolute inset-0 pointer-events-none z-0 opacity-[0.07]"
         style={{
-          backgroundImage: `
-            linear-gradient(to right, #1A1A1A 1px, transparent 1px),
-            linear-gradient(to bottom, #1A1A1A 1px, transparent 1px)
-          `,
-          backgroundSize: '40px 40px'
+          backgroundImage: `linear-gradient(to right,#1A1A1A 1px,transparent 1px),linear-gradient(to bottom,#1A1A1A 1px,transparent 1px)`,
+          backgroundSize: "40px 40px",
         }}
       />
 
       <div className="relative z-10 mx-auto max-w-5xl animate-in fade-in duration-200 text-left">
-
-        {/* BRUTALIST MAIN WORKSPACE */}
         <div className="space-y-8 rounded-none border-2 border-black bg-white p-6 shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:p-8">
 
           {/* HEADER */}
@@ -68,157 +78,169 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* MAIN LAYOUT GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* --- TOP LEFT: METRICS GRID --- */}
-            <div className="grid h-[280px] grid-cols-2 gap-4 rounded-none border-2 border-black bg-neutral-50 p-4 shadow-sm">
+            {/* ── TOP LEFT: 4 METRIC CARDS ── */}
+            <div className="grid grid-cols-2 gap-3 rounded-none border-2 border-black bg-neutral-50 p-3 shadow-sm">
               <MiniStatCard
                 title="Applications"
                 value={stats?.applications.total ?? "—"}
-                badge="total"
+                badge="This Week"
                 icon={<Send className="h-3.5 w-3.5 text-black" />}
-                description="Total sent"
-                bgClass="bg-[#E3F2FD]"
+                description="Target: 10 sent"
+                bgClass="bg-[#D6E8F5]"
               />
-
               <MiniStatCard
-                title="Interviewing"
-                value={stats?.applications.by_status.interviewing ?? "—"}
-                badge="active"
+                title="Skills Added"
+                value={stats ? `+${stats.goals.completed}` : "—"}
+                badge="Verified"
                 icon={<Cpu className="h-3.5 w-3.5 text-black" />}
-                description="Moving forward"
-                bgClass="bg-[#FFF9C4]"
+                description="Parsed profile updates"
+                bgClass="bg-[#D4EDDA]"
               />
-
               <MiniStatCard
-                title="Goals"
+                title="Roadmap"
                 value={stats ? `${stats.goals.completion_pct}%` : "—"}
-                badge={stats ? `${stats.goals.completed}/${stats.goals.total}` : "—"}
+                badge="Progress"
                 icon={<Milestone className="h-3.5 w-3.5 text-black" />}
-                description="Progress"
-                bgClass="bg-[#E1BEE7]"
+                description="Milestone 3 target"
+                bgClass="bg-[#E8D5F5]"
               />
-
               <MiniStatCard
                 title="Streak"
-                value={stats?.streak_days ?? "—"}
-                badge="days"
+                value={stats?.streak_days != null ? `${stats.streak_days} Days` : "—"}
+                badge="Active"
                 icon={<Flame className="h-3.5 w-3.5 text-black" />}
-                description="Active days"
-                bgClass="bg-[#C8E6C9]"
+                description="Actions logged daily"
+                bgClass="bg-[#FDEBD0]"
               />
             </div>
 
-            {/* --- TOP RIGHT: AI NUDGE FEED --- */}
-            <Card className="flex h-[280px] flex-col justify-between overflow-hidden rounded-none border-2 border-black bg-white shadow-sm">
-              <CardHeader className="pb-3 pt-5 px-5 space-y-1 border-b-2 border-black bg-gradient-to-r from-orange-50 to-orange-100">
+            {/* ── TOP RIGHT: AI NUDGE SYSTEM ── */}
+            <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white">
+              <CardHeader className="pb-3 pt-5 px-5 space-y-1 border-b-2 border-black bg-white shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-none border border-black bg-orange-100 p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                    <Sparkles className="h-4 w-4 text-orange-700" />
+                  <div className="rounded-none border-2 border-black bg-[#FFF9C4] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                    <Sparkles className="h-4 w-4 text-amber-800" />
                   </div>
-                  <CardTitle className="font-serif text-md font-black text-neutral-900 tracking-tight">AI Nudge System</CardTitle>
+                  <CardTitle className="font-serif text-base font-black text-neutral-900 tracking-tight">
+                    AI Nudge System
+                  </CardTitle>
                 </div>
-                <CardDescription className="font-sans text-xs text-neutral-600">
-                  Automated notifications for your goals.
+                <CardDescription className="font-sans text-xs text-neutral-500">
+                  Automated notifications evaluated against active workspace signals.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="px-5 pb-5 flex-1 overflow-y-auto space-y-2">
+              <CardContent className="px-5 pb-5 flex-1 overflow-y-auto space-y-2 pt-4">
                 {nudges.length === 0 ? (
-                  <div className="flex h-full w-full flex-col items-center justify-center rounded-none border border-black bg-neutral-50 p-4 text-center">
-                    <p className="font-serif text-sm font-black text-neutral-800">No active nudges</p>
-                    <p className="font-sans text-[11px] text-neutral-600 max-w-xs mt-1 leading-relaxed">
-                      Keep pushing — your AI co-pilot is watching for opportunities.
+                  <div className="flex flex-col items-center justify-center rounded-none border-2 border-black bg-[#FEFDE8] p-5 text-center">
+                    <p className="font-serif text-sm font-black text-amber-900">No warning flags triggered</p>
+                    <p className="font-sans text-[11px] text-amber-700 max-w-xs mt-1.5 leading-relaxed">
+                      Expand your core index metrics to unlock predictive semantic tracking signals.
                     </p>
                   </div>
                 ) : (
                   nudges.map((nudge) => (
-                    <div key={nudge.id} className="rounded-none border border-orange-200 bg-orange-50 p-2.5 flex gap-2 items-start group hover:bg-orange-100 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs leading-relaxed text-neutral-800 font-medium">{nudge.body}</p>
-                      </div>
-                      <button
-                        onClick={() => handleMarkRead(nudge.id)}
-                        className="shrink-0 opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-orange-600 transition-all text-xs"
-                      >
-                        ✕
-                      </button>
+                    <div key={nudge.id} className="rounded-none border-2 border-black bg-[#FFF9C4] p-2.5 flex gap-2 items-start group hover:bg-yellow-100 transition-colors">
+                      <p className="flex-1 text-xs leading-relaxed text-neutral-800 font-medium min-w-0">{nudge.body}</p>
+                      <button onClick={() => handleMarkRead(nudge.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-amber-600 transition-all text-xs">✕</button>
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
 
-            {/* --- BOTTOM LEFT: KANBAN BOARD PREVIEW --- */}
-            <Link
-              href="/tracker?view=kanban"
-              className="group block h-[340px] transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
-            >
-              <Card className="flex h-full flex-col justify-between overflow-hidden rounded-none border-2 border-black bg-white shadow-sm transition-all duration-150 group-hover:bg-blue-50 group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-                <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0 border-b-2 border-black bg-gradient-to-r from-blue-50 to-blue-100">
+            {/* ── BOTTOM LEFT: KANBAN PREVIEW ── */}
+            <Link href="/tracker?view=kanban" className="group block transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5">
+              <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white transition-all duration-150 group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+                <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0 border-b-2 border-black">
                   <div className="flex items-center gap-2">
-                    <div className="rounded-none border border-black bg-[#E3F2FD] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                      <KanbanSquare className="h-4 w-4 text-blue-700 shrink-0" />
+                    <div className="rounded-none border-2 border-black bg-[#FFF9C4] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                      <KanbanSquare className="h-4 w-4 text-amber-800 shrink-0" />
                     </div>
                     <div>
-                      <CardTitle className="font-serif text-md font-black text-neutral-900 tracking-tight">Kanban Board</CardTitle>
-                      <CardDescription className="font-mono text-[10px] text-neutral-600 uppercase tracking-wider">Pipeline mapping</CardDescription>
+                      <CardTitle className="font-serif text-base font-black text-neutral-900 tracking-tight">Kanban Board</CardTitle>
+                      <CardDescription className="font-mono text-[10px] text-neutral-600 uppercase tracking-wider">Pipeline mapping active roles</CardDescription>
                     </div>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-black group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-black transition-transform" />
                 </CardHeader>
-                <CardContent className="px-5 pb-5 flex-1 flex items-center justify-center">
-                  <div className="grid grid-cols-4 gap-2 w-full rounded-none border-2 border-black bg-neutral-50 p-4 text-center shadow-sm">
-                    <div className="space-y-0.5 border-r-2 border-black last:border-none bg-[#E3F2FD] py-2 rounded-none">
-                      <div className="text-xl font-mono font-black text-blue-900">{stats?.applications.by_status.applied ?? 0}</div>
-                      <div className="text-[9px] uppercase tracking-wider text-blue-700 font-bold">Applied</div>
-                    </div>
-                    <div className="space-y-0.5 border-r-2 border-black last:border-none bg-[#FFF9C4] py-2 rounded-none">
-                      <div className="text-xl font-mono font-black text-amber-900">{stats?.applications.by_status.interviewing ?? 0}</div>
-                      <div className="text-[9px] uppercase tracking-wider text-amber-700 font-bold">Interview</div>
-                    </div>
-                    <div className="space-y-0.5 border-r-2 border-black last:border-none bg-[#C8E6C9] py-2 rounded-none">
-                      <div className="text-xl font-mono font-black text-green-900">{stats?.applications.by_status.offer ?? 0}</div>
-                      <div className="text-[9px] uppercase tracking-wider text-green-700 font-bold">Offer</div>
-                    </div>
-                    <div className="space-y-0.5 last:border-none bg-[#FFCDD2] py-2 rounded-none">
-                      <div className="text-xl font-mono font-black text-red-900">{stats?.applications.by_status.rejected ?? 0}</div>
-                      <div className="text-[9px] uppercase tracking-wider text-red-700 font-bold">Rejected</div>
-                    </div>
+                <CardContent className="px-5 pb-5 pt-4 flex-1 flex items-center">
+                  <div className="grid grid-cols-4 w-full rounded-none border-2 border-black overflow-hidden">
+                    <KanbanCol count={stats?.applications.by_status.applied ?? 0} label="Applied" active />
+                    <KanbanCol count={stats?.applications.by_status.interviewing ?? 0} label="Interview" />
+                    <KanbanCol count={stats?.applications.by_status.offer ?? 0} label="Offer" />
+                    <KanbanCol count={stats?.applications.by_status.rejected ?? 0} label="Rejected" last />
                   </div>
                 </CardContent>
               </Card>
             </Link>
 
-            {/* --- BOTTOM RIGHT: CALENDAR PREVIEW --- */}
-            <Link
-              href="/tracker?view=calendar"
-              className="group block h-[340px] transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
-            >
-              <Card className="flex h-full flex-col overflow-hidden rounded-none border-2 border-black bg-white shadow-sm transition-all duration-150 group-hover:bg-pink-50 group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-                <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0 border-b-2 border-black bg-gradient-to-r from-pink-50 to-pink-100 shrink-0">
+            {/* ── BOTTOM RIGHT: CALENDAR PREVIEW ── */}
+            <Link href="/tracker?view=calendar" className="group block transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5">
+              <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white transition-all duration-150 group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+                <CardHeader className="pb-3 pt-4 px-5 flex flex-row items-center justify-between space-y-0 border-b-2 border-black shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-none border border-black bg-[#F8BBD0] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                      <CalendarDays className="h-4 w-4 text-pink-700 shrink-0" />
+                    <div className="rounded-none border-2 border-black bg-[#E8D5F5] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                      <CalendarDays className="h-4 w-4 text-purple-800 shrink-0" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <CardTitle className="font-serif text-md font-black text-neutral-900 tracking-tight">Calendar</CardTitle>
-                        <span className="rounded-none border-2 border-black bg-neutral-900 px-1.5 py-0.5 font-mono text-[9px] font-black text-white uppercase tracking-wider shadow-sm">Today</span>
+                        <CardTitle className="font-serif text-base font-black text-neutral-900 tracking-tight">Calendar & Agenda</CardTitle>
+                        <span className="rounded-none border-2 border-black bg-neutral-900 px-1.5 py-0.5 font-mono text-[9px] font-black text-white uppercase tracking-wider">
+                          June 2026
+                        </span>
                       </div>
-                      <CardDescription className="font-sans text-xs text-neutral-600">Upcoming deadlines</CardDescription>
+                      <CardDescription className="font-sans text-xs text-neutral-500">Scroll layout showing due parameters</CardDescription>
                     </div>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-black group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-black transition-transform" />
                 </CardHeader>
 
-                <CardContent className="px-5 pb-5 overflow-y-auto flex-1 pr-2 space-y-2">
-                  <div className="text-xs text-neutral-600 font-mono uppercase tracking-wider">
-                    Check /tracker for full calendar
+                <CardContent className="px-3 pb-3 pt-2 flex-1 overflow-hidden">
+                  {/* Day-of-week headers */}
+                  <div className="grid grid-cols-7 mb-0.5">
+                    {WEEK_HEADERS.map((d) => (
+                      <div key={d} className="text-center text-[9px] font-mono font-black text-neutral-400 uppercase py-1">
+                        {d}
+                      </div>
+                    ))}
                   </div>
-                  <div className="rounded-none border border-pink-200 bg-pink-50 p-2 text-xs">
-                    <p className="font-semibold text-pink-900">View calendar</p>
-                    <p className="text-[10px] text-pink-700">Manage all events and deadlines</p>
+
+                  {/* Date cells */}
+                  <div className="grid grid-cols-7 gap-px bg-black border border-black">
+                    {cells.map((day, i) => {
+                      if (!day) {
+                        return <div key={`blank-${i}`} className="bg-neutral-50 min-h-8.5" />;
+                      }
+                      const dayEvents = calEvents.filter(
+                        (e) => new Date(e.start_dt).getDate() === day
+                      );
+                      const isToday = todayDay === day;
+                      return (
+                        <div
+                          key={day}
+                          className={cn(
+                            "flex flex-col min-h-8.5 p-0.5 bg-white",
+                            isToday && "bg-amber-50 ring-2 ring-amber-500 ring-inset z-10"
+                          )}
+                        >
+                          <span className={cn(
+                            "text-[9px] font-mono font-black leading-none px-0.5 pt-0.5",
+                            isToday ? "text-amber-700" : "text-black"
+                          )}>
+                            {day}
+                          </span>
+                          {dayEvents.slice(0, 1).map((e) => (
+                            <div key={e.id} className="mt-0.5 bg-[#E8D5F5] border border-purple-300 px-0.5 overflow-hidden">
+                              <span className="text-[7px] font-bold text-purple-900 uppercase truncate block leading-tight">
+                                {e.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -226,11 +248,12 @@ export default function DashboardPage() {
 
           </div>
         </div>
-
       </div>
     </div>
   );
 }
+
+// ── Sub-components ──────────────────────────────────────────
 
 interface MiniStatCardProps {
   title: string;
@@ -243,29 +266,43 @@ interface MiniStatCardProps {
 
 function MiniStatCard({ title, value, badge, icon, description, bgClass = "bg-white" }: MiniStatCardProps) {
   return (
-    <Card className={cn("flex flex-col justify-between space-y-2 rounded-none border-2 border-black p-3 shadow-sm transition-colors duration-150", bgClass)}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[9px] font-black tracking-wider text-neutral-700 uppercase truncate">
-          {title}
-        </span>
-        <div className="shrink-0 rounded-none border border-black bg-white p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+    <Card className={cn("flex flex-col justify-between rounded-none border-2 border-black p-3 shadow-sm", bgClass)}>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="font-mono text-[9px] font-black tracking-wider text-neutral-700 uppercase">{title}</span>
+        <div className="shrink-0 rounded-none border-2 border-black bg-white p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
           {icon}
         </div>
       </div>
-
-      <div className="space-y-0.5">
-        <div className="flex items-baseline justify-between gap-1.5">
-          <span className="font-mono text-lg font-black text-neutral-900 tracking-tight">
-            {value}
-          </span>
-          <Badge variant="secondary" className="rounded-none border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-            {badge}
-          </Badge>
-        </div>
-        <p className="font-sans text-[10px] text-neutral-600 font-medium truncate">
-          {description}
-        </p>
+      <div className="flex items-baseline justify-between gap-1">
+        <span className="font-mono text-2xl font-black text-neutral-900 tracking-tight leading-none">{value}</span>
+        <Badge variant="secondary" className="rounded-none border-2 border-black bg-white px-1.5 py-0.5 font-mono text-[8px] font-black uppercase tracking-wider text-black shadow-[1px_1px_0px_rgba(0,0,0,1)] shrink-0">
+          {badge}
+        </Badge>
       </div>
+      <p className="font-sans text-[10px] text-neutral-600 font-medium mt-1 truncate">{description}</p>
     </Card>
+  );
+}
+
+function KanbanCol({ count, label, active = false, last = false }: { count: number; label: string; active?: boolean; last?: boolean }) {
+  return (
+    <div className={cn(
+      "flex flex-col items-center py-5",
+      active ? "bg-[#D6E8F5]" : "bg-white",
+      !last && "border-r-2 border-black"
+    )}>
+      <span className={cn(
+        "text-2xl font-mono font-black",
+        active ? "text-blue-900" : "text-neutral-300"
+      )}>
+        {count}
+      </span>
+      <span className={cn(
+        "text-[9px] uppercase tracking-wider font-black mt-0.5",
+        active ? "text-blue-700" : "text-neutral-300"
+      )}>
+        {label}
+      </span>
+    </div>
   );
 }
