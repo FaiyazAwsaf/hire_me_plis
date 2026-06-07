@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-from sqlalchemy import select, func, distinct
+from sqlalchemy import select, func, distinct, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException
 
@@ -112,6 +112,20 @@ async def list_sessions(current_user: _User, db: _DB):
         sessions.append(SessionSummary(session_id=row.session_id, label=label, started_at=row.started_at))
 
     return SessionListResponse(sessions=sessions)
+
+
+@router.delete("/sessions/{session_id}", status_code=204)
+async def delete_session(session_id: str, current_user: _User, db: _DB):
+    """Delete all messages in a session. Only deletes messages owned by the current user."""
+    from app.models.chat_message import ChatMessage as ChatMessageModel
+
+    await db.execute(
+        delete(ChatMessageModel).where(
+            ChatMessageModel.user_id == current_user.id,
+            ChatMessageModel.session_id == session_id,
+        )
+    )
+    await db.commit()
 
 
 @router.get("/history", response_model=ChatHistoryResponse)

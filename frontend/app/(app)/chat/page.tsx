@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Send,
   Sparkles,
-  User
+  User,
+  Trash2,
 } from "lucide-react";
 import { createChatSocket, type ChatWebSocket } from "@/lib/websocket";
 import api from "@/lib/api";
@@ -28,6 +29,7 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [sessions, setSessions] = useState<{ id: string; label: string }[]>([]);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const socketRef = useRef<ChatWebSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -140,6 +142,15 @@ export default function ChatPage() {
     setSessionId(id);
   }
 
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    await api.delete(`/chat/sessions/${id}`);
+    if (id === sessionId) createNewSession();
+    fetchSessions();
+  }
+
   return (
     <div className="w-full h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
 
@@ -197,19 +208,36 @@ export default function ChatPage() {
               {sessions.map((s) => {
                 const isActive = s.id === sessionId;
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    onClick={() => switchSession(s.id)}
                     className={cn(
-                      "w-full text-left px-3 py-2.5 text-xs tracking-tight font-bold rounded-none border transition-colors",
+                      "group flex items-center gap-1 rounded-none border transition-colors",
                       isActive
-                        ? "bg-primary text-primary-foreground border-primary shadow-[2px_2px_0px_rgba(0,0,0,0.2)]"
-                        : "bg-white text-neutral-700 border-transparent hover:border-black hover:bg-neutral-100"
+                        ? "bg-primary border-primary shadow-[2px_2px_0px_rgba(0,0,0,0.2)]"
+                        : "bg-white border-transparent hover:border-black hover:bg-neutral-100"
                     )}
                   >
-                    <MessageSquare className="h-3.5 w-3.5 inline mr-2 shrink-0" />
-                    <span className="truncate">{s.label}</span>
-                  </button>
+                    <button
+                      onClick={() => switchSession(s.id)}
+                      className={cn(
+                        "flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 text-xs tracking-tight font-bold text-left",
+                        isActive ? "text-primary-foreground" : "text-neutral-700"
+                      )}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{s.label}</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setPendingDeleteId(s.id); }}
+                      title="Delete session"
+                      className={cn(
+                        "shrink-0 p-1.5 mr-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-none hover:bg-red-100 hover:text-red-600",
+                        isActive ? "text-primary-foreground hover:bg-red-700 hover:text-white" : "text-neutral-400"
+                      )}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -302,6 +330,39 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {pendingDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setPendingDeleteId(null)}
+          />
+          {/* Dialog box */}
+          <div className="relative z-10 bg-white border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] p-6 w-80 font-mono">
+            <h2 className="text-sm font-black uppercase tracking-widest mb-2">Delete Session?</h2>
+            <p className="text-xs text-neutral-600 mb-6 leading-relaxed">
+              All messages in this session will be permanently removed. This cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => setPendingDeleteId(null)}
+                className="rounded-none border border-black text-xs font-black uppercase hover:bg-neutral-100"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDelete}
+                className="rounded-none border-2 border-red-600 bg-red-600 text-white text-xs font-black uppercase hover:bg-red-700 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
