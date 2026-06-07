@@ -1,25 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, MapPin, DollarSign, Calendar, BrainCircuit, ArrowRight, SlidersHorizontal, CheckSquare, Square, AlertCircle, Upload } from "lucide-react";
+import { Search, MapPin, DollarSign, Calendar, BrainCircuit, ArrowRight, CheckSquare, Square, AlertCircle, Upload } from "lucide-react";
 import api from "@/lib/api";
 import { useJobsStore, type JobCard } from "@/store/jobs";
 
 function JobsSearchContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const urlQuery = searchParams.get("q") || "";
-
-  const { results, source, isSearching, query, setResults, setSearching, setQuery } = useJobsStore();
+  const { results, isSearching, query, setResults, setSearching, setQuery } = useJobsStore();
 
   const [error, setError] = useState<string | null>(null);
-  const [locationType, setLocationType] = useState<"all" | "remote" | "on-site" | "hybrid">("all");
   const [hasCv, setHasCv] = useState<boolean | null>(null); // null = checking, false = missing, true = present
   
   // Track specific checklist items from Screenshot 2026-06-08 013036.png
@@ -42,7 +36,7 @@ function JobsSearchContent() {
         const response = await api.get<{ status: string }>("/cv/status");
         const cvStatus = response.data.status.toLowerCase();
         
-        if (["ready", "completed", "embedded", "processed"].includes(cvStatus)) {
+        if (cvStatus === "done") {
           setHasCv(true);
         } else {
           setHasCv(false);
@@ -86,10 +80,7 @@ function JobsSearchContent() {
     };
   }, [isSearching]);
 
-  const processedJobs = results.filter((job) => {
-    if (locationType === "all") return true;
-    return true;
-  }).sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
+  const processedJobs = [...results].sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
 
   async function handleSearch(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -175,7 +166,7 @@ function JobsSearchContent() {
             </div>
           )}
 
-          {/* --- SEARCH & FILTER BOX --- */}
+          {/* --- SEARCH BOX --- */}
           <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3 rounded-none border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_rgba(0,0,0,1)]">
             <div className="flex-1 flex items-center gap-3 px-2 py-1 bg-neutral-50/50 border border-transparent focus-within:border-black transition-colors">
               <Search className="h-5 w-5 text-black shrink-0" />
@@ -187,31 +178,13 @@ function JobsSearchContent() {
                 className="flex-1 border-0 h-10 rounded-none bg-transparent font-sans text-base p-0 text-black focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-neutral-400 disabled:cursor-not-allowed"
               />
             </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="relative flex items-center h-12 border border-black bg-white px-3 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                <SlidersHorizontal className="h-4 w-4 mr-2 text-black shrink-0" />
-                <select
-                  value={locationType}
-                  onChange={(e) => setLocationType(e.target.value as any)}
-                  disabled={hasCv === false}
-                  className="font-mono text-xs font-black uppercase tracking-wider bg-transparent border-0 rounded-none h-full text-black focus:outline-none focus:ring-0 cursor-pointer pr-4 disabled:cursor-not-allowed"
-                >
-                  <option value="all">All Types</option>
-                  <option value="remote">Remote</option>
-                  <option value="on-site">On-Site</option>
-                  <option value="hybrid">Hybrid</option>
-                </select>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isSearching || hasCv === false}
-                className="h-12 rounded-none border border-black bg-black px-8 font-mono text-xs font-black uppercase tracking-wider text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                {isSearching ? "Searching…" : "Search"}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              disabled={isSearching || hasCv === false}
+              className="h-12 rounded-none border border-black bg-black px-8 font-mono text-xs font-black uppercase tracking-wider text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+            >
+              {isSearching ? "Searching…" : "Search"}
+            </Button>
           </form>
 
           {/* --- RESULTS AREA --- */}
@@ -318,13 +291,10 @@ function JobsSearchContent() {
               </div>
             ) : (
               <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-                <div className="text-xs font-mono text-neutral-600">
-                  {processedJobs.length} result{processedJobs.length !== 1 ? "s" : ""} {source && `via ${source}`}
-                </div>
                 {processedJobs.map((job) => (
                   <Link
                     key={job.id}
-                    href={`/jobs/${job.id}?q=${encodeURIComponent(query)}`}
+                    href={`/jobs/${job.id}`}
                     className="group block transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
                   >
                     <Card className="flex flex-col justify-between overflow-hidden rounded-none border-2 border-black bg-white shadow-sm transition-all duration-150 group-hover:bg-neutral-50/50 group-hover:shadow-[8px_8px_0px_rgba(0,0,0,1)]">
