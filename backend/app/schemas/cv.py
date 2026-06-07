@@ -128,6 +128,16 @@ class CVProfilePatch(BaseModel):
     certifications: list[CertEntry] | None = None
 
 
+class CVProfileWrite(BaseModel):
+    """Full profile payload for PUT /cv/profile. updated_at is server-set."""
+    personal: PersonalInfo
+    experience: list[ExperienceEntry] = []
+    education: list[EducationEntry] = []
+    skills: list[str] = []
+    projects: list[ProjectEntry] = []
+    certifications: list[CertEntry] = []
+
+
 # ---------------------------------------------------------------------------
 # CV export
 # ---------------------------------------------------------------------------

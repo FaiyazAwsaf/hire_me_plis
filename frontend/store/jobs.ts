@@ -14,11 +14,11 @@ export interface JobCard {
 
 interface JobsState {
   results: JobCard[];
-  source: "adzuna" | "jsearch" | "scraped" | null;
+  source: string | null;
   total: number;
   isSearching: boolean;
   query: string;
-  setResults: (results: JobCard[], source: JobsState["source"], total: number) => void;
+  setResults: (results: JobCard[], source: string | null, total: number) => void;
   setSearching: (v: boolean) => void;
   setQuery: (q: string) => void;
   clear: () => void;
