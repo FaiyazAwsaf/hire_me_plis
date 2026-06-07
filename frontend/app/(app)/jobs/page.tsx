@@ -126,7 +126,7 @@ function JobsSearchContent() {
               </div>
 
               {/* Action Button */}
-              <Button type="submit" className="h-12 rounded-none border border-black bg-black px-8 font-mono text-xs font-black uppercase tracking-wider text-white hover:bg-neutral-800 transition-colors">
+              <Button type="submit" className="h-12 rounded-none border border-primary bg-primary px-8 font-mono text-xs font-black uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-colors">
                 Search Agent
               </Button>
             </div>

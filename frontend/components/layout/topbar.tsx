@@ -145,8 +145,8 @@ export function Topbar() {
           {isNotificationsOpen && (
             <div className="absolute right-0 z-[100000] mt-2 top-full w-80 overflow-hidden rounded-none border-2 border-black bg-white text-black shadow-[4px_4px_0px_rgba(0,0,0,1)] animate-in fade-in duration-100 sm:w-[380px]">
               <div className="p-3 border-b-2 border-black bg-neutral-50 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-black" />
-                <h3 className="font-serif font-black text-xs uppercase tracking-wider">Agent Nudges & Reminders</h3>
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h3 className="font-serif font-black text-xs uppercase tracking-wider text-primary">Agent Nudges & Reminders</h3>
               </div>
 
               <div className="max-h-[315px] overflow-y-auto divide-y divide-black/20">
@@ -171,7 +171,7 @@ export function Topbar() {
                           {nudge.actionLabel && (
                             <button 
                               onClick={() => handleNudgeNavigation(nudge.actionView)}
-                              className="font-mono text-[10px] font-black uppercase tracking-tight text-black underline underline-offset-2 hover:text-neutral-700"
+                              className="font-mono text-[10px] font-black uppercase tracking-tight text-primary underline underline-offset-2 hover:text-primary/70"
                             >
                               {nudge.actionLabel} &rarr;
                             </button>

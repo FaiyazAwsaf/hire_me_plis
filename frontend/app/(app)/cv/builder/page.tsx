@@ -264,7 +264,7 @@ export default function ResumeBuilderPage() {
                 <Button
                   onClick={handleSaveResume}
                   disabled={isSaving}
-                  className="flex h-8 items-center gap-2 rounded-none border border-black bg-black px-4 text-xs font-mono font-black uppercase text-white shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-800 transition-colors disabled:opacity-30"
+                  className="flex h-8 items-center gap-2 rounded-none border border-primary bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors disabled:opacity-30"
                 >
                   <Save className="h-3.5 w-3.5" />
                   {isSaving ? "Saving..." : "Commit Changes"}

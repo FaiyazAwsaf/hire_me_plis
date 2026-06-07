@@ -254,7 +254,7 @@ function TrackerContent() {
               <Button 
                 onClick={() => setShowAppForm(!showAppForm)} 
                 size="sm" 
-                className="flex h-10 items-center gap-2 rounded-none border border-black bg-black px-4 text-xs font-mono font-black uppercase text-white shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-800 transition-colors"
+                className="flex h-10 items-center gap-2 rounded-none border border-primary bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4 stroke-[3px]" />
                 <span>{showAppForm ? "Close Form" : "Add application"}</span>
@@ -264,7 +264,7 @@ function TrackerContent() {
               <Button 
                 onClick={() => { setShowTaskForm(!showTaskForm); setNewTaskDay(CURRENT_DAY_JUNE_2026); setShowInlineCustomInput(false); setCustomCategoryInput(""); }} 
                 size="sm" 
-                className="flex h-10 items-center gap-2 rounded-none border border-black bg-black px-4 text-xs font-mono font-black uppercase text-white shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-800 transition-colors"
+                className="flex h-10 items-center gap-2 rounded-none border border-primary bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4 stroke-[3px]" />
                 <span>{showTaskForm ? "Close" : "Add Goal"}</span>
@@ -301,7 +301,7 @@ function TrackerContent() {
                 <Button 
                   type="submit" 
                   size="sm" 
-                  className="h-10 rounded-none border border-black bg-black text-xs font-mono font-black uppercase text-white hover:bg-neutral-800 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                  className="h-10 rounded-none border border-primary bg-primary text-xs font-mono font-black uppercase text-primary-foreground hover:bg-primary/90 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
                 >
                   Add Application
                 </Button>
@@ -370,7 +370,7 @@ function TrackerContent() {
                   <Button 
                     type="submit" 
                     size="sm" 
-                    className="bg-black text-white hover:bg-neutral-800 border border-black rounded-none h-10 text-xs font-mono font-black uppercase px-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 border border-primary rounded-none h-10 text-xs font-mono font-black uppercase px-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
                   >
                     Add
                   </Button>
@@ -386,7 +386,7 @@ function TrackerContent() {
             onClick={() => setActiveTab("kanban")} 
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono font-black uppercase rounded-none transition-all border border-transparent", 
-              activeTab === "kanban" ? "bg-black text-white border-black shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "text-neutral-600 hover:text-black"
+              activeTab === "kanban" ? "bg-primary text-primary-foreground border-primary shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "text-neutral-600 hover:text-black"
             )}
           >
             <KanbanSquare className="h-3.5 w-3.5 shrink-0" />
@@ -396,7 +396,7 @@ function TrackerContent() {
             onClick={() => setActiveTab("calendar")} 
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono font-black uppercase rounded-none transition-all border border-transparent", 
-              activeTab === "calendar" ? "bg-black text-white border-black shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "text-neutral-600 hover:text-black"
+              activeTab === "calendar" ? "bg-primary text-primary-foreground border-primary shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "text-neutral-600 hover:text-black"
             )}
           >
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
@@ -406,7 +406,7 @@ function TrackerContent() {
             onClick={() => setActiveTab("goals")} 
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono font-black uppercase rounded-none transition-all border border-transparent", 
-              activeTab === "goals" ? "bg-black text-white border-black shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "text-neutral-600 hover:text-black"
+              activeTab === "goals" ? "bg-primary text-primary-foreground border-primary shadow-[1px_1px_0px_rgba(0,0,0,0.2)]" : "text-neutral-600 hover:text-black"
             )}
           >
             <Target className="h-3.5 w-3.5 shrink-0" />
@@ -506,7 +506,7 @@ function TrackerContent() {
                         <div className="flex items-center justify-between">
                           <span className={cn(
                             "h-5 w-5 flex items-center justify-center rounded-none text-[10px] font-mono font-bold border border-transparent", 
-                            day === CURRENT_DAY_JUNE_2026 && "bg-black text-white font-black border-black"
+                            day === CURRENT_DAY_JUNE_2026 && "bg-primary text-primary-foreground font-black border-primary"
                           )}>
                             {day}
                           </span>

@@ -102,7 +102,7 @@ export function Sidebar() {
                     className={cn(
                       "w-full flex items-center gap-3 rounded-none px-3 py-2.5 text-sm font-bold transition-all duration-150 relative pr-10",
                       active
-                        ? "border-2 border-black bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                        ? "border-2 border-primary bg-primary/10 text-primary shadow-[2px_2px_0px_rgba(0,0,0,0.15)]"
                         : "text-neutral-700 hover:bg-white/50 hover:text-black"
                     )}
                   >
@@ -115,7 +115,7 @@ export function Sidebar() {
                     )}
 
                     {!isExpanded && active && (
-                      <div className="absolute left-0 w-1 h-4 bg-black rounded-r-none" />
+                      <div className="absolute left-0 w-1 h-4 bg-primary rounded-r-none" />
                     )}
                   </Link>
 
@@ -144,7 +144,7 @@ export function Sidebar() {
                   className={cn(
                     "flex items-center gap-3 rounded-none px-3 py-2.5 text-sm font-bold transition-all duration-150 group relative",
                     active
-                      ? "border-2 border-black bg-white text-black shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                      ? "border-2 border-primary bg-primary/10 text-primary shadow-[2px_2px_0px_rgba(0,0,0,0.15)]"
                       : "text-neutral-700 hover:bg-white/50 hover:text-black"
                   )}
                 >
@@ -157,7 +157,7 @@ export function Sidebar() {
                   )}
 
                   {!isExpanded && active && (
-                    <div className="absolute left-0 w-1 h-4 bg-black rounded-r-none" />
+                    <div className="absolute left-0 w-1 h-4 bg-primary rounded-r-none" />
                   )}
                 </Link>
               )}

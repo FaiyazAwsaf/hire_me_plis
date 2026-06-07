@@ -219,7 +219,7 @@ function JobDetailContent() {
               rel="noreferrer"
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "w-full sm:w-auto h-12 rounded-none border-2 border-black bg-black text-white hover:bg-neutral-800 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+                "w-full sm:w-auto h-12 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]"
               )}
             >
               <span>Apply on External Board</span>

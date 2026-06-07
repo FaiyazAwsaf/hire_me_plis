@@ -83,7 +83,7 @@ export default function Home() {
             <Link href="/login" className="hover:text-black transition-colors font-semibold">Login</Link>
             <Link 
               href="/register" 
-              className="px-5 py-2.5 bg-black text-white hover:bg-neutral-900 transition-colors tracking-widest font-mono text-[10px] uppercase flex items-center gap-3"
+              className="px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors tracking-widest font-mono text-[10px] uppercase flex items-center gap-3"
             >
               <span>Get Started</span>
               <span className="text-neutral-400 font-sans text-xs translate-y-[-0.5px]">&rarr;</span>

@@ -238,7 +238,7 @@ export default function UploadPage() {
             </p>
           </div>
           <Link href="/cv/builder">
-            <Button className="flex h-10 items-center gap-2 rounded-none border border-black bg-black px-4 text-xs font-mono font-black uppercase text-white shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-800 transition-colors">
+            <Button className="flex h-10 items-center gap-2 rounded-none border border-primary bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors">
               <span>New Resume</span>
               <ArrowRight className="h-4 w-4 stroke-[3px]" />
             </Button>
@@ -310,7 +310,7 @@ export default function UploadPage() {
             {/* Upload Button Component (Refined to border-1) */}
             <Button
               type="button"
-              className="w-full h-11 rounded-none border border-black bg-black text-xs font-mono font-black uppercase text-white hover:bg-neutral-800 shadow-[2px_2px_0px_rgba(0,0,0,1)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
+              className="w-full h-11 rounded-none border border-primary bg-primary text-xs font-mono font-black uppercase text-primary-foreground hover:bg-primary/90 shadow-[2px_2px_0px_rgba(0,0,0,1)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
               disabled={!selectedFile || status === "uploading" || status === "processing"}
               onClick={handleUpload}
             >
@@ -323,7 +323,7 @@ export default function UploadPage() {
         {(status === "uploading" || status === "processing" || status === "ready" || status === "failed") && (
           <div className="w-full rounded-none border border-black bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)] text-left animate-in fade-in zoom-in-95 duration-200">
             {/* Top Step Counter Header Row */}
-            <div className="flex items-center justify-between border-b border-black bg-black px-4 py-2 text-[10px] font-mono font-black uppercase tracking-widest text-white">
+            <div className="flex items-center justify-between border-b border-primary bg-primary px-4 py-2 text-[10px] font-mono font-black uppercase tracking-widest text-primary-foreground">
               <span>LIVE PIPELINE SCAN IN PROGRESS</span>
               <span>STEP {currentStep === 0 && status !== "ready" ? 1 : status === "ready" ? 4 : currentStep} OF 4</span>
             </div>
@@ -361,7 +361,7 @@ export default function UploadPage() {
                     >
                       {/* Step Checkbox Icon Container Box (Refined to border-1) */}
                       <div className={`h-6 w-6 shrink-0 flex items-center justify-center border border-black rounded-none shadow-[1px_1px_0px_rgba(0,0,0,1)] ${
-                        stepState === "completed" ? "bg-black text-white" : "bg-white text-black"
+                        stepState === "completed" ? "bg-primary text-primary-foreground" : "bg-white text-black"
                       }`}>
                         {stepState === "completed" && <CheckCircle2 className="h-3.5 w-3.5 stroke-[3px]" />}
                         {stepState === "active" && <Play className="h-2.5 w-2.5 fill-black" />}

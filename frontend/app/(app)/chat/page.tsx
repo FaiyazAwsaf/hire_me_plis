@@ -84,7 +84,7 @@ export default function ChatPage() {
                   className={cn(
                     "w-full flex items-center gap-2 px-3 py-2.5 rounded-none text-left text-xs uppercase tracking-tight font-bold transition-all border",
                     activeSessionId === session.id
-                      ? "bg-black text-white border-black shadow-[2px_2px_0px_rgba(0,0,0,0.2)]"
+                      ? "bg-primary text-primary-foreground border-primary shadow-[2px_2px_0px_rgba(0,0,0,0.2)]"
                       : "bg-white text-neutral-800 border-neutral-300 hover:border-black"
                   )}
                 >
@@ -150,7 +150,7 @@ export default function ChatPage() {
               />
               <Button 
                 type="button" 
-                className="h-12 rounded-none border-2 border-black bg-black px-6 font-mono text-xs font-black uppercase tracking-wider text-white hover:bg-neutral-800 transition-colors flex items-center gap-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] shrink-0"
+                className="h-12 rounded-none border-2 border-primary bg-primary px-6 font-mono text-xs font-black uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] shrink-0"
                 onClick={() => alert("Dispatching message payload...")}
               >
                 <span>Send</span>
@@ -169,7 +169,7 @@ export default function ChatPage() {
 function SystemMessage({ text }: { text: string }) {
   return (
     <div className="flex gap-3 items-start max-w-4xl text-left animate-in fade-in duration-150">
-      <div className="h-8 w-8 rounded-none bg-black text-white flex items-center justify-center text-[10px] font-mono font-black uppercase shrink-0 border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+      <div className="h-8 w-8 rounded-none bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-mono font-black uppercase shrink-0 border border-primary shadow-[1px_1px_0px_rgba(0,0,0,1)]">
         AI
       </div>
       <div className="rounded-none border border-black bg-white p-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] flex-1">

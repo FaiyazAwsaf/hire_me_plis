@@ -83,7 +83,7 @@ export default function RegisterPage() {
           </div>
 
           <Button 
-            className="w-full rounded-none bg-black text-white hover:bg-neutral-900 transition-colors tracking-widest font-mono text-[10px] uppercase py-5 mt-2 flex items-center justify-center gap-2" 
+            className="w-full rounded-none bg-primary text-primary-foreground hover:bg-primary/90 transition-colors tracking-widest font-mono text-[10px] uppercase py-5 mt-2 flex items-center justify-center gap-2" 
             type="button"
           >
             <span>Create Account</span>
