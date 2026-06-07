@@ -38,7 +38,7 @@ function ContactLinks({ resume, tone = "dark" }: { resume: Resume; tone?: "dark"
     { label: "LinkedIn", href: personalInfo.linkedin },
     { label: "GitHub", href: personalInfo.github },
     { label: "Portfolio", href: personalInfo.portfolio },
-  ].filter((link) => link.href);
+  ].filter((link): link is { label: string; href: string } => !!link.href);
 
   if (links.length === 0) return null;
 

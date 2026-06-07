@@ -26,10 +26,16 @@ function JobDetailContent() {
   const router = useRouter();
   const job = useJobsStore((s) => s.results.find((j) => j.id === id));
 
-  const [coverLetter, setCoverLetter] = useState<string | null>(null);
+  const [editableLetter, setEditableLetter] = useState<string | null>(null);
+  const [hasGenerated, setHasGenerated] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Refinement chat state
+  const [refineInstruction, setRefineInstruction] = useState("");
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
 
   if (!job) {
     return (
@@ -58,15 +64,14 @@ function JobDetailContent() {
   async function handleGenerateCoverLetter() {
     setIsGenerating(true);
     setGenError(null);
-    setCoverLetter(null);
     try {
       const res = await api.post<{ cover_letter: string }>("/jobs/cover-letter", {
         role: job!.role,
         company: job!.company,
-        // fit_reasoning is a concise summary of what the role requires vs the user's CV
         jd_summary: job!.fit_reasoning,
       });
-      setCoverLetter(res.data.cover_letter);
+      setEditableLetter(res.data.cover_letter);
+      setHasGenerated(true);
     } catch {
       setGenError("Failed to generate cover letter. Please try again.");
     } finally {
@@ -74,9 +79,27 @@ function JobDetailContent() {
     }
   }
 
+  async function handleRefine() {
+    if (!refineInstruction.trim() || !editableLetter) return;
+    setIsRefining(true);
+    setRefineError(null);
+    try {
+      const res = await api.post<{ cover_letter: string }>("/jobs/cover-letter/refine", {
+        cover_letter: editableLetter,
+        instruction: refineInstruction.trim(),
+      });
+      setEditableLetter(res.data.cover_letter);
+      setRefineInstruction("");
+    } catch {
+      setRefineError("Failed to apply changes. Please try again.");
+    } finally {
+      setIsRefining(false);
+    }
+  }
+
   async function handleCopy() {
-    if (!coverLetter) return;
-    await navigator.clipboard.writeText(coverLetter);
+    if (!editableLetter) return;
+    await navigator.clipboard.writeText(editableLetter);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -199,7 +222,7 @@ function JobDetailContent() {
                   <span>Cover Letter Generator</span>
                 </div>
                 <p className="font-mono text-[10px] text-neutral-500 font-bold">
-                  AI-written, grounded in your CV — references your actual experience
+                  AI-written, grounded in your CV — editable after generation
                 </p>
               </div>
 
@@ -216,7 +239,7 @@ function JobDetailContent() {
                 ) : (
                   <>
                     <Sparkles className="h-3.5 w-3.5" />
-                    <span>{coverLetter ? "Regenerate" : "Generate"}</span>
+                    <span>{hasGenerated ? "Regenerate" : "Generate"}</span>
                   </>
                 )}
               </Button>
@@ -226,30 +249,67 @@ function JobDetailContent() {
               <p className="font-mono text-xs text-rose-600 font-bold">{genError}</p>
             )}
 
-            {coverLetter && (
-              <div className="space-y-3">
-                <div className="relative rounded-none border-2 border-black bg-neutral-50 p-4">
-                  <pre className="font-sans text-sm leading-relaxed text-neutral-800 whitespace-pre-wrap wrap-break-word">
-                    {coverLetter}
-                  </pre>
+            {editableLetter !== null && (
+              <div className="space-y-4">
+                {/* Editable textarea */}
+                <textarea
+                  value={editableLetter}
+                  onChange={(e) => setEditableLetter(e.target.value)}
+                  rows={14}
+                  className="w-full rounded-none border-2 border-black bg-neutral-50 p-4 font-sans text-sm leading-relaxed text-neutral-800 resize-y focus:outline-none focus:ring-0 focus:border-black"
+                />
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleCopy}
+                    variant="outline"
+                    className="rounded-none border-2 border-black bg-white font-mono text-xs font-black uppercase tracking-wider h-9 px-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleCopy}
-                  variant="outline"
-                  className="rounded-none border-2 border-black bg-white font-mono text-xs font-black uppercase tracking-wider h-9 px-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-emerald-600">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      <span>Copy to Clipboard</span>
-                    </>
+
+                {/* AI refinement chat */}
+                <div className="space-y-2 border-t-2 border-dashed border-neutral-200 pt-4">
+                  <div className="font-mono text-[10px] font-black text-neutral-400 uppercase tracking-wider">
+                    Ask AI to modify
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={refineInstruction}
+                      onChange={(e) => setRefineInstruction(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !isRefining && handleRefine()}
+                      placeholder='e.g. "make it shorter" or "open with my internship at X"'
+                      disabled={isRefining}
+                      className="flex-1 rounded-none border-2 border-black bg-white px-3 py-2 font-mono text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-0 disabled:opacity-50"
+                    />
+                    <Button
+                      onClick={handleRefine}
+                      disabled={isRefining || !refineInstruction.trim()}
+                      className="rounded-none border-2 border-black bg-black text-white hover:bg-neutral-800 font-mono text-xs font-black uppercase tracking-wider px-4 h-auto shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {isRefining ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <span>Apply</span>
+                      )}
+                    </Button>
+                  </div>
+                  {refineError && (
+                    <p className="font-mono text-xs text-rose-600 font-bold">{refineError}</p>
                   )}
-                </Button>
+                </div>
               </div>
             )}
           </div>

@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Bell,
   Sparkles,
-  Briefcase,
   CheckSquare,
   LogOut,
   User,
@@ -66,11 +65,6 @@ export function Topbar() {
   const handleLogout = () => {
     clearAuth();
     router.push("/");
-  };
-
-  const handleNudgeNavigation = (view: "kanban" | "calendar" | "goals") => {
-    setIsNotificationsOpen(false);
-    router.push(`/tracker?view=${view}`);
   };
 
   return (
@@ -147,7 +141,7 @@ export function Topbar() {
                     >
                       <div className="mt-0.5 shrink-0">
                         <div className="h-7 w-7 rounded-none bg-white text-black flex items-center justify-center border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                          {nudge.type === "warning" ? <Briefcase className="h-3.5 w-3.5" /> : <CheckSquare className="h-3.5 w-3.5" />}
+                          <CheckSquare className="h-3.5 w-3.5" />
                         </div>
                       </div>
 
@@ -155,21 +149,9 @@ export function Topbar() {
                         <p className="font-sans text-[11px] leading-relaxed font-bold text-neutral-800 pr-4">
                           {nudge.body}
                         </p>
-                        <div className="flex items-center gap-3">
-                          {nudge.actionLabel && (
-                            <button 
-                              onClick={() => handleNudgeNavigation(nudge.actionView)}
-                              className="font-mono text-[10px] font-black uppercase tracking-tight text-primary underline underline-offset-2 hover:text-primary/70"
-                            >
-                              {nudge.actionLabel} &rarr;
-                            </button>
-                          )}
-                          {nudge.timestamp && (
-                            <span className="font-mono text-[9px] text-neutral-500 font-bold uppercase">
-                              {nudge.timestamp}
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-mono text-[9px] text-neutral-500 font-bold uppercase">
+                          {new Date(nudge.created_at).toLocaleDateString()}
+                        </span>
                       </div>
 
                       <button

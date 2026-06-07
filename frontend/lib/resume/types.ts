@@ -23,8 +23,8 @@ export const educationSchema = z.object({
   degree: z.string().min(1, "Degree is required"),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
-  gpa: z.string().optional().default(""),
-  description: z.string().optional().default(""),
+  gpa: z.string().optional(),
+  description: z.string().optional(),
 }).refine(
   (data) => !data.startDate || !data.endDate || new Date(data.startDate) <= new Date(data.endDate),
   {

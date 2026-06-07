@@ -51,3 +51,8 @@ class CoverLetterRequest(BaseModel):
 
 class CoverLetterResponse(BaseModel):
     cover_letter: str
+
+
+class CoverLetterRefineRequest(BaseModel):
+    cover_letter: str   # current letter text (may include user edits)
+    instruction: str    # e.g. "make the tone more formal" or "shorten the second paragraph"

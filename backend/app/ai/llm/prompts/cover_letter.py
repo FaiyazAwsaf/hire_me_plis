@@ -1,3 +1,19 @@
+def refine_cover_letter_prompt(cover_letter: str, instruction: str) -> str:
+    """Prompt for editing an existing cover letter based on a user instruction."""
+    return f"""You are editing a professional cover letter based on the user's instruction.
+
+Current cover letter:
+{cover_letter}
+
+User's instruction:
+{instruction}
+
+Instructions:
+- Apply the requested change precisely — do not rewrite sections not mentioned
+- Preserve all factual claims, dates, company names, and role references unchanged
+- Output ONLY the revised cover letter text, no explanation or commentary"""
+
+
 def cover_letter_prompt(role: str, company: str, jd_summary: str, cv_context: str) -> str:
     """Prompt for generating a personalized cover letter.
 

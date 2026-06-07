@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.agents.fit_scorer.scorer import score
 from app.ai.agents.job_hunter.graph import agent
 from app.ai.llm.generate import generate
-from app.ai.llm.prompts.cover_letter import cover_letter_prompt
+from app.ai.llm.prompts.cover_letter import cover_letter_prompt, refine_cover_letter_prompt
 from app.ai.rag.context import build_context
 from app.ai.rag.retriever import retrieve
 from app.core.llm_client import HEAVY_MODEL
@@ -20,6 +20,7 @@ from app.schemas.jobs import (
     JobSearchResponse,
     ScoreBreakdown,
 )
+
 
 
 async def fit_score_job(
@@ -141,6 +142,27 @@ async def generate_cover_letter(
     )
 
     return CoverLetterResponse(cover_letter=letter)
+
+
+async def refine_cover_letter(
+    cover_letter: str,
+    instruction: str,
+    user_id: uuid.UUID,
+    db: AsyncSession,
+) -> CoverLetterResponse:
+    """Apply a targeted edit to an existing cover letter.
+
+    No RAG re-retrieval — the letter already contains CV context from the initial
+    generation; refinements are almost always stylistic or structural changes.
+    """
+    await _require_cv(user_id, db)
+
+    refined = await generate(
+        prompt=refine_cover_letter_prompt(cover_letter, instruction),
+        model=HEAVY_MODEL,
+    )
+
+    return CoverLetterResponse(cover_letter=refined)
 
 
 def _parse_date(value: str | None) -> date | None:
