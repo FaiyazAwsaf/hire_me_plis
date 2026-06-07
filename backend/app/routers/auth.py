@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.auth import (
-    LoginRequest,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -46,7 +45,7 @@ async def login(
     username: Annotated[str, Form()],
     password: Annotated[str, Form()],
 ) -> TokenResponse:
-    """Authenticate a user and return an access token. Accepts OAuth2 form data (username as email)."""
+    """Authenticate a user. Accepts OAuth2 form data — username field holds the email."""
     result = await db.execute(select(User).where(User.email == username))
     user = result.scalar_one_or_none()
     if user is None or not auth_service.verify_password(password, user.hashed_pw):

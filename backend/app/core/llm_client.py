@@ -5,7 +5,7 @@ from app.config import settings
 # for both Claude and Gemini without separate anthropic/google clients.
 # Change model constants here to affect every call site.
 HEAVY_MODEL = "claude-sonnet-4-6"   # Claude — explanations, cover letters, fit reasoning
-LIGHT_MODEL = "gemini-flash"         # Gemini Flash — classification, extraction (fast + cheap)
+LIGHT_MODEL = "gemini-3.5-flash"         # Gemini Flash — classification, extraction (fast + cheap)
 
 llm_client = AsyncOpenAI(
     api_key=settings.chatllm_api_key,
