@@ -15,3 +15,13 @@ class ChatMessage(BaseModel):
 class ChatHistoryResponse(BaseModel):
     session_id: str
     messages: list[ChatMessage]
+
+
+class SessionSummary(BaseModel):
+    session_id: str
+    label: str          # first user message, truncated to 60 chars
+    started_at: datetime
+
+
+class SessionListResponse(BaseModel):
+    sessions: list[SessionSummary]

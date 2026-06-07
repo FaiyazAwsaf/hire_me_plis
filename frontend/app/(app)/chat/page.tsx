@@ -20,18 +20,44 @@ import api from "@/lib/api";
 import { useChatStore } from "@/store/chat";
 
 export default function ChatPage() {
-  const { messages, sessionId, isStreaming, addMessage, appendToken, finalizeAssistant, setStreaming } =
+  const { messages, sessionId, isStreaming, addMessage, appendToken, finalizeAssistant, setStreaming, setSessionId, clear } =
     useChatStore();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [sessions, setSessions] = useState<{ id: string; label: string }[]>([]);
   const socketRef = useRef<ChatWebSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load history and open WebSocket on mount
+  function fetchSessions() {
+    api
+      .get<{ sessions: { session_id: string; label: string }[] }>("/chat/sessions")
+      .then((r) => setSessions(r.data.sessions.map((s) => ({ id: s.session_id, label: s.label }))))
+      .catch(() => {});
+  }
+
+  // Seed sessionId on the client only — avoids SSR/client UUID mismatch
   useEffect(() => {
+    if (sessionId) return; // already set (e.g. store was kept alive across navigations)
+    const stored = localStorage.getItem("chat_session_id");
+    const id = stored ?? crypto.randomUUID();
+    if (!stored) localStorage.setItem("chat_session_id", id);
+    setSessionId(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch session list whenever we have a valid sessionId
+  useEffect(() => {
+    if (!sessionId) return;
+    fetchSessions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  // Load history and open WebSocket — waits until sessionId is initialised client-side
+  useEffect(() => {
+    if (!sessionId) return; // skip the empty-string SSR tick; re-runs when sessionId is set
     api
       .get<{ messages: { role: "user" | "assistant"; content: string; created_at: string }[] }>(
         `/chat/history?session_id=${sessionId}&limit=20`
@@ -66,7 +92,9 @@ export default function ChatPage() {
 
     socketRef.current = socket;
     return () => socket.close();
-  }, []);
+  // sessionId is stable after first set; effect re-runs once to open the real socket
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,8 +118,26 @@ export default function ChatPage() {
   }
 
   function createNewSession() {
-    // TODO: implement new session creation — currently just clears local messages
-    window.location.reload();
+    socketRef.current?.close();
+    socketRef.current = null;
+    clear();
+    setReady(false);
+    setError(null);
+    const newId = crypto.randomUUID();
+    localStorage.setItem("chat_session_id", newId);
+    setSessionId(newId);
+    // Session list will refresh via the sessionId useEffect above
+  }
+
+  function switchSession(id: string) {
+    if (id === sessionId) return;
+    socketRef.current?.close();
+    socketRef.current = null;
+    clear();
+    setReady(false);
+    setError(null);
+    localStorage.setItem("chat_session_id", id);
+    setSessionId(id);
   }
 
   return (
@@ -140,15 +186,32 @@ export default function ChatPage() {
               </Button>
             </div>
 
-            {/* Session History — TODO: implement backend session list endpoint */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+            {/* Session History */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
               <div className="px-2 py-1 text-[10px] font-black text-neutral-400 uppercase tracking-widest">
-                Current Session
+                Sessions
               </div>
-              <div className="px-3 py-2.5 text-left text-xs uppercase tracking-tight font-bold bg-primary text-primary-foreground border border-primary rounded-none shadow-[2px_2px_0px_rgba(0,0,0,0.2)]">
-                <MessageSquare className="h-3.5 w-3.5 inline mr-2" />
-                Session {sessionId.slice(0, 8)}
-              </div>
+              {sessions.length === 0 && (
+                <p className="px-2 py-2 text-[10px] text-neutral-400 font-mono">No previous sessions</p>
+              )}
+              {sessions.map((s) => {
+                const isActive = s.id === sessionId;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => switchSession(s.id)}
+                    className={cn(
+                      "w-full text-left px-3 py-2.5 text-xs tracking-tight font-bold rounded-none border transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary shadow-[2px_2px_0px_rgba(0,0,0,0.2)]"
+                        : "bg-white text-neutral-700 border-transparent hover:border-black hover:bg-neutral-100"
+                    )}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 inline mr-2 shrink-0" />
+                    <span className="truncate">{s.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* User Profile Context */}

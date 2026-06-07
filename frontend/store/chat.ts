@@ -22,12 +22,14 @@ interface ChatState {
   appendToken: (token: string) => void;
   finalizeAssistant: () => void;
   setStreaming: (v: boolean) => void;
+  setSessionId: (id: string) => void;
   clear: () => void;
 }
 
 export const useChatStore = create<ChatState>()((set) => ({
   messages: [],
-  sessionId: uid(),
+  // Starts empty — populated client-side in useEffect to avoid SSR/client UUID mismatch
+  sessionId: "",
   isStreaming: false,
 
   addMessage: (msg) =>
@@ -47,5 +49,6 @@ export const useChatStore = create<ChatState>()((set) => ({
 
   finalizeAssistant: () => set({ isStreaming: false }),
   setStreaming: (v) => set({ isStreaming: v }),
-  clear: () => set({ messages: [], sessionId: uid(), isStreaming: false }),
+  setSessionId: (id) => set({ sessionId: id }),
+  clear: () => set({ messages: [], sessionId: "", isStreaming: false }),
 }));
