@@ -74,7 +74,7 @@ export default function ChatPage() {
     const socket = createChatSocket(
       (msg) => {
         if (msg.type === "token") appendToken(msg.content);
-        if (msg.type === "done") finalizeAssistant();
+        if (msg.type === "done") { finalizeAssistant(); fetchSessions(); }
         if (msg.type === "error") {
           setError(msg.content);
           finalizeAssistant();

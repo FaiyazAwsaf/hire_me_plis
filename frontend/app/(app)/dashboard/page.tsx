@@ -44,12 +44,7 @@ export default function DashboardPage() {
     // Fetch CV verification status
     api.get<{ status: string }>("/cv/status")
       .then((r) => {
-        const cvStatus = r.data.status.toLowerCase();
-        if (["ready", "completed", "embedded", "processed"].includes(cvStatus)) {
-          setHasCv(true);
-        } else {
-          setHasCv(false);
-        }
+        setHasCv(r.data.status === "done");
       })
       .catch(() => setHasCv(false));
 
@@ -198,7 +193,7 @@ export default function DashboardPage() {
                 ) : (
                   nudges.map((nudge) => (
                     <div key={nudge.id} className="rounded-none border-2 border-black bg-[#FFFDE7] p-2.5 flex gap-2 items-start group hover:bg-[#FFF9C4] shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-colors">
-                      <p className="flex-1 text-xs leading-relaxed text-neutral-900 font-bold min-w-0">{nudge.body || nudge.message}</p>
+                      <p className="flex-1 text-xs leading-relaxed text-neutral-900 font-bold min-w-0">{nudge.body}</p>
                       <button onClick={() => handleMarkRead(nudge.id)} className="shrink-0 text-neutral-400 hover:text-rose-600 transition-all text-xs font-mono font-black">✕</button>
                     </div>
                   ))
@@ -298,7 +293,7 @@ export default function DashboardPage() {
                       );
                       const hasEvents = dayEvents.length > 0;
                       const mainEvent = dayEvents[0];
-                      const theme = hasEvents ? getEventStyles(mainEvent.category) : null;
+                      const theme = hasEvents ? getEventStyles("default") : null;
                       const isToday = todayDay === day;
                       
                       return (
