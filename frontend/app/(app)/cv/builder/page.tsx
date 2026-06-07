@@ -72,11 +72,14 @@ export default function ResumeBuilderPage() {
   const [showManagement, setShowManagement] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [zoomScale, setZoomScale] = useState<number>(75);
+  
+  // Adjusted baseline scale initialization to start at 100%
+  const [zoomScale, setZoomScale] = useState<number>(100);
 
-  const handleZoomIn = () => setZoomScale((prev) => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomScale((prev) => Math.max(prev - 10, 40));
-  const handleResetZoom = () => setZoomScale(75);
+  const handleZoomIn = () => setZoomScale((prev) => Math.min(prev + 10, 160));
+  // Hard floor set to 100% minimum boundary constraint
+  const handleZoomOut = () => setZoomScale((prev) => Math.max(prev - 10, 100));
+  const handleResetZoom = () => setZoomScale(100);
 
   const notify = (toast: Omit<ToastMessage, "id">) => {
     const id = Date.now();
@@ -198,13 +201,13 @@ export default function ResumeBuilderPage() {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-64px)] text-[#1A1A1A] antialiased relative overflow-y-auto select-none text-left flex flex-col pb-12">
+    <div className="w-full min-h-screen text-[#1A1A1A] antialiased relative select-none text-left flex flex-col pb-12">
 
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
 
-      {/* Full-page grid background */}
+      {/* Grid Pattern Background layer */}
       <div
-        className="absolute inset-0 pointer-events-none z-0 opacity-[0.10]"
+        className="absolute inset-0 pointer-events-none z-0 opacity-[0.06]"
         style={{
           backgroundImage: `
             linear-gradient(to right, #1A1A1A 1px, transparent 1px),
@@ -215,9 +218,7 @@ export default function ResumeBuilderPage() {
       />
 
       {/* ── TOP CONTROL BAR ── */}
-      <div className="relative z-10 shrink-0 flex items-end gap-3 border-b-2 border-black bg-white/80 backdrop-blur-sm px-6 py-3">
-        
-        {/* Resume title input with label */}
+      <div className="relative z-10 shrink-0 flex items-end gap-3 border-b-2 border-black bg-white px-6 py-3">
         <div className="flex flex-col min-w-[240px]">
           <Label
             htmlFor="resumeTitle"
@@ -234,14 +235,10 @@ export default function ResumeBuilderPage() {
           />
         </div>
 
-        {/* Vertical divider */}
         <div className="h-8 w-px bg-black/20 mx-1" />
 
-        {/* Buttons — invisible label spacer aligns them flush with the input bottom */}
         <div className="flex flex-col">
-          <span className="text-[9px] font-mono uppercase tracking-widest text-transparent mb-1 select-none pointer-events-none">
-            &nbsp;
-          </span>
+          <span className="text-[9px] text-transparent mb-1 select-none pointer-events-none">&nbsp;</span>
           <div className="flex items-center gap-2">
             {showManagement ? (
               <Button
@@ -260,11 +257,10 @@ export default function ResumeBuilderPage() {
                   <Settings className="h-3.5 w-3.5" />
                   Manage
                 </Button>
-
                 <Button
                   onClick={handleSaveResume}
                   disabled={isSaving}
-                  className="flex h-8 items-center gap-2 rounded-none border border-primary bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors disabled:opacity-30"
+                  className="flex h-8 items-center gap-2 rounded-none border border-black bg-black px-4 text-xs font-mono font-black uppercase text-white shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-800 transition-colors disabled:opacity-30"
                 >
                   <Save className="h-3.5 w-3.5" />
                   {isSaving ? "Saving..." : "Commit Changes"}
@@ -275,13 +271,13 @@ export default function ResumeBuilderPage() {
         </div>
       </div>
 
-      {/* ── MAIN BODY ── */}
-      <div className="relative z-10 flex flex-1 overflow-visible">
+      {/* ── MAIN LAYOUT HUB ── */}
+      <div className="relative z-10 flex flex-1 w-full overflow-visible">
 
         {showManagement ? (
           <div className="flex-1 p-8">
             <Card className="rounded-none border-2 border-black bg-white shadow-[4px_4px_0px_rgba(0,0,0,1)] p-6 max-w-3xl mx-auto">
-              <div className="flex items-center justify-between mb-4 border-b border-dashed border-neutral-200 pb-2">
+              <div className="mb-4 border-b border-dashed border-neutral-200 pb-2">
                 <h2 className="text-xs font-mono font-black uppercase tracking-widest text-black">
                   Saved Resumes
                 </h2>
@@ -297,16 +293,16 @@ export default function ResumeBuilderPage() {
           </div>
         ) : (
           <>
-            {/* ── LEFT: Form editor panel ── */}
-            <div className="w-[640px] shrink-0 flex flex-col border-r-2 border-black bg-white overflow-visible">
-              <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-visible">
+            {/* ── LEFT: Form Editor Panel (Static locked width) ── */}
+            <div className="w-[520px] shrink-0 flex flex-col border-r-2 border-black bg-white">
+              <Tabs defaultValue="personal" className="w-full flex flex-col">
 
-                {/* Tab ribbon */}
+                {/* Tab selector menu */}
                 <div className="shrink-0 border-b border-black overflow-x-auto bg-neutral-50">
                   <TabsList className="w-full justify-start rounded-none bg-transparent p-0 h-auto gap-0 flex">
                     {[
-                      { val: "personal",       label: "PERSONAL" },
-                      { val: "experience",     label: "EXP" },
+                      { val: "personal",      label: "PERSONAL" },
+                      { val: "experience",    label: "EXP" },
                       { val: "education",      label: "EDU" },
                       { val: "skills",         label: "SKILLS" },
                       { val: "projects",       label: "PROJ" },
@@ -323,21 +319,18 @@ export default function ResumeBuilderPage() {
                   </TabsList>
                 </div>
 
-                {/* ── Personal tab — optimized flex height parameters for personal info visibility ── */}
+                {/* Personal Tab Layout View */}
                 <TabsContent
                   value="personal"
-                  className="flex-1 flex flex-col overflow-visible mt-0 data-[state=inactive]:hidden min-h-[600px]"
+                  className="w-full flex flex-col mt-0 data-[state=inactive]:hidden"
                 >
-                  {/* Template selector strip — fixed height, does not scroll */}
                   <div className="shrink-0 px-5 pt-4 pb-3 bg-neutral-50/60 border-b border-dashed border-neutral-200">
                     <TemplateSelector
                       selectedTemplate={selectedTemplate}
                       onSelectTemplate={setSelectedTemplate}
                     />
                   </div>
-
-                  {/* PersonalInfoForm gets all remaining space and stretches down */}
-                  <div className="flex-1 min-h-0 flex flex-col overflow-visible py-4">
+                  <div className="w-full flex flex-col">
                     <PersonalInfoForm
                       data={currentResume.personalInfo}
                       onSave={handleSavePersonalInfo}
@@ -346,62 +339,41 @@ export default function ResumeBuilderPage() {
                   </div>
                 </TabsContent>
 
-                {/* ── Experience ── */}
-                <TabsContent
-                  value="experience"
-                  className="flex-1 p-5 mt-0 data-[state=inactive]:hidden"
-                >
+                <TabsContent value="experience" className="w-full p-5 mt-0 data-[state=inactive]:hidden">
                   <ExperienceForm
                     experiences={currentResume.experience}
                     onUpdate={(data) => updateCurrentResume({ experience: data })}
                   />
                 </TabsContent>
 
-                {/* ── Education ── */}
-                <TabsContent
-                  value="education"
-                  className="flex-1 p-5 mt-0 data-[state=inactive]:hidden"
-                >
+                <TabsContent value="education" className="w-full p-5 mt-0 data-[state=inactive]:hidden">
                   <EducationForm
                     educations={currentResume.education}
                     onUpdate={(data) => updateCurrentResume({ education: data })}
                   />
                 </TabsContent>
 
-                {/* ── Skills ── */}
-                <TabsContent
-                  value="skills"
-                  className="flex-1 p-5 mt-0 data-[state=inactive]:hidden"
-                >
+                <TabsContent value="skills" className="w-full p-5 mt-0 data-[state=inactive]:hidden">
                   <SkillsForm
                     skills={currentResume.skills}
                     onUpdate={(data) => updateCurrentResume({ skills: data })}
                   />
                 </TabsContent>
 
-                {/* ── Projects ── */}
-                <TabsContent
-                  value="projects"
-                  className="flex-1 p-5 mt-0 data-[state=inactive]:hidden"
-                >
+                <TabsContent value="projects" className="w-full p-5 mt-0 data-[state=inactive]:hidden">
                   <ProjectsForm
                     projects={currentResume.projects}
                     onUpdate={(data) => updateCurrentResume({ projects: data })}
                   />
                 </TabsContent>
 
-                {/* ── Certifications ── */}
-                <TabsContent
-                  value="certifications"
-                  className="flex-1 p-5 mt-0 data-[state=inactive]:hidden"
-                >
+                <TabsContent value="certifications" className="w-full p-5 mt-0 data-[state=inactive]:hidden">
                   <CertificationsForm
                     certifications={currentResume.certifications}
                     onUpdate={(data) => updateCurrentResume({ certifications: data })}
                   />
                 </TabsContent>
 
-                {/* Export footer — always visible at bottom of left panel */}
                 <div className="shrink-0 border-t-2 border-black p-4 bg-neutral-50">
                   <ExportOptions
                     resume={currentResume}
@@ -412,55 +384,54 @@ export default function ResumeBuilderPage() {
               </Tabs>
             </div>
 
-            {/* ── RIGHT: Live preview container ── */}
-            <div className="flex-1 flex flex-col overflow-visible bg-neutral-200/60">
+            {/* ── RIGHT: Live Preview Canvas Context Container ── */}
+            <div className="flex-1 min-w-0 flex flex-col bg-neutral-100 border-b border-black">
 
-              {/* Preview header bar with zoom controls */}
+              {/* Action Ribbon header for canvas frame configurations */}
               <div className="shrink-0 flex items-center justify-between border-b-2 border-black bg-black px-5 py-2">
                 <span className="flex items-center gap-2 text-[10px] font-mono font-black uppercase tracking-widest text-white">
                   <span className="h-1.5 w-1.5 bg-emerald-400 inline-block animate-pulse" />
                   Live Preview
                 </span>
-
                 <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-700 px-1 py-0.5">
-                  <button
-                    type="button"
-                    onClick={handleZoomOut}
-                    className="p-1 text-neutral-400 hover:text-white transition-colors"
-                    title="Zoom out"
-                  >
+                  <button type="button" onClick={handleZoomOut} className="p-1 text-neutral-400 hover:text-white transition-colors" title="Zoom out">
                     <ZoomOut className="h-3.5 w-3.5" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleResetZoom}
-                    className="px-2 text-[10px] font-mono font-bold text-neutral-300 hover:text-white transition-colors border-x border-neutral-700 min-w-[42px] text-center"
-                    title="Reset zoom"
-                  >
+                  <button type="button" onClick={handleResetZoom} className="px-2 text-[10px] font-mono font-bold text-neutral-300 hover:text-white transition-colors border-x border-neutral-700 min-w-[42px] text-center" title="Reset zoom">
                     {zoomScale}%
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleZoomIn}
-                    className="p-1 text-neutral-400 hover:text-white transition-colors"
-                    title="Zoom in"
-                  >
+                  <button type="button" onClick={handleZoomIn} className="p-1 text-neutral-400 hover:text-white transition-colors" title="Zoom in">
                     <ZoomIn className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
 
-              {/* Preview canvas section — now fully scrollable vertically and horizontally */}
-              <div className="flex-1 p-8 overflow-auto flex justify-center items-start">
-                {/* Centering layout helper wrapper that respects the dimensions of zoomed content */}
-                <div className="flex items-start justify-center min-w-max min-h-max p-4">
-                  <div
-                    className="origin-top transition-transform duration-150 ease-out"
-                    style={{ transform: `scale(${zoomScale / 100})` }}
-                  >
-                    <style>{`.resume-section-title{margin-bottom:.5rem;border-bottom:1px solid #e5e7eb;padding-bottom:.25rem;font-size:.875rem;font-weight:700;color:#171717}`}</style>
-                    <ResumePreview resume={currentResume} templateId={selectedTemplate} />
-                  </div>
+              {/* 
+                Isolated Box Scroll Canvas layer
+                Using standard overflow-auto bounds ensures visual scaling triggers scrollbars 
+                locally inside the right pane rather than bursting across panels.
+              */}
+              <div className="flex-1 w-full overflow-auto flex justify-start items-start p-0 m-0 bg-neutral-100">
+                <div
+                  className="origin-top-left transition-transform duration-150 ease-out select-text"
+                  style={{ transform: `scale(${zoomScale / 100})` }}
+                >
+                  <style>{`
+                    /* Force immediate elimination of subcomponent titles and descriptions natively */
+                    .preview-header-container,
+                    [id*="preview-title"],
+                    h2.text-xl,
+                    p.text-muted-foreground,
+                    p.text-sm:contains("Updates after you save") {
+                      display: none !important;
+                      opacity: 0 !important;
+                      visibility: hidden !important;
+                      height: 0 !important;
+                      margin: 0 !important;
+                      padding: 0 !important;
+                    }
+                  `}</style>
+                  <ResumePreview resume={currentResume} templateId={selectedTemplate} />
                 </div>
               </div>
             </div>

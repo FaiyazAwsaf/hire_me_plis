@@ -343,17 +343,11 @@ function ResumePreviewComponent({ resume, templateId = "modern" }: ResumePreview
   const activeTemplate = templateId === "professional" ? "professional" : templateId;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      <div className="shrink-0 border-b border-neutral-200 bg-neutral-50 px-6 py-4">
-        <h2 className="text-lg font-semibold text-neutral-900">Preview</h2>
-        <p className="mt-1 text-xs text-neutral-600">Updates after you save</p>
-      </div>
-      <div className="flex-1 overflow-auto bg-neutral-100 p-6">
-        <style>{`.resume-section-title{margin-bottom:.5rem;border-bottom:1px solid #e5e7eb;padding-bottom:.25rem;font-size:.875rem;font-weight:700;color:#171717}`}</style>
-        {activeTemplate === "classic" && <ClassicTemplate resume={resume} />}
-        {activeTemplate === "professional" && <ProfessionalTemplate resume={resume} />}
-        {activeTemplate === "modern" && <ModernTemplate resume={resume} />}
-      </div>
+    <div className="w-full">
+      <style>{`.resume-section-title{margin-bottom:.5rem;border-bottom:1px solid #e5e7eb;padding-bottom:.25rem;font-size:.875rem;font-weight:700;color:#171717}`}</style>
+      {activeTemplate === "classic" && <ClassicTemplate resume={resume} />}
+      {activeTemplate === "professional" && <ProfessionalTemplate resume={resume} />}
+      {activeTemplate === "modern" && <ModernTemplate resume={resume} />}
     </div>
   );
 }

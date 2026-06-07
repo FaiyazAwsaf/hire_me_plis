@@ -19,7 +19,6 @@ import api from "@/lib/api";
 import { useDashboardStore } from "@/store/dashboard";
 import type { CalendarEvent } from "@/store/tracker";
 
-// June 2026: day 1 falls on Sunday (start-of-week = 0 blanks)
 const JUNE_START_DOW = 0;
 const JUNE_DAYS = 30;
 const WEEK_HEADERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
@@ -32,7 +31,6 @@ export default function DashboardPage() {
   const isJune2026 = today.getFullYear() === 2026 && today.getMonth() === 5;
   const todayDay = isJune2026 ? today.getDate() : null;
 
-  // Leading blank cells + date cells for the June 2026 grid
   const cells: (number | null)[] = [
     ...Array<null>(JUNE_START_DOW).fill(null),
     ...Array.from({ length: JUNE_DAYS }, (_, i) => i + 1),
@@ -46,16 +44,43 @@ export default function DashboardPage() {
     api.get<{ events: CalendarEvent[] }>("/calendar/events?start=2026-06-01&end=2026-06-30")
       .then((r) => setCalEvents(r.data.events))
       .catch(console.error);
-  }, []);
+  }, [setStats, setNudges]);
 
   async function handleMarkRead(nudgeId: string) {
     markNudgeRead(nudgeId);
     await api.patch(`/nudges/${nudgeId}/read`).catch(console.error);
   }
 
+  // Restored Calendar category-to-color mapper from Dashboard 1
+  const getEventStyles = (category: string) => {
+    switch (category?.toLowerCase()) {
+      case "learning":
+      case "dsa":
+        return {
+          cell: "border-black bg-[#FFF9C4] text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+          dot: "bg-amber-600",
+          text: "text-amber-900"
+        };
+      case "cv":
+      case "resume":
+      case "application":
+        return {
+          cell: "border-black bg-[#E1BEE7] text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+          dot: "bg-purple-700",
+          text: "text-purple-900"
+        };
+      default:
+        return {
+          cell: "border-black bg-[#E3F2FD] text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+          dot: "bg-blue-600",
+          text: "text-blue-900"
+        };
+    }
+  };
+
   return (
     <div className="w-full min-h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
-
+      
       {/* GRID CANVAS */}
       <div
         className="absolute inset-0 pointer-events-none z-0 opacity-[0.07]"
@@ -80,31 +105,31 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* ── TOP LEFT: 4 METRIC CARDS ── */}
+            {/* ── TOP LEFT: METRIC CARDS ── */}
             <div className="grid grid-cols-2 gap-3 rounded-none border-2 border-black bg-neutral-50 p-3 shadow-sm">
               <MiniStatCard
                 title="Applications"
-                value={stats?.applications.total ?? "—"}
+                value={stats?.applications?.total ?? "—"}
                 badge="This Week"
                 icon={<Send className="h-3.5 w-3.5 text-black" />}
                 description="Target: 10 sent"
-                bgClass="bg-[#D6E8F5]"
+                bgClass="bg-[#E3F2FD] hover:bg-[#BBDEFB]"
               />
               <MiniStatCard
                 title="Skills Added"
-                value={stats ? `+${stats.goals.completed}` : "—"}
+                value={stats?.goals?.completed != null ? `+${stats.goals.completed}` : "—"}
                 badge="Verified"
                 icon={<Cpu className="h-3.5 w-3.5 text-black" />}
                 description="Parsed profile updates"
-                bgClass="bg-[#D4EDDA]"
+                bgClass="bg-[#E8F5E9] hover:bg-[#C8E6C9]"
               />
               <MiniStatCard
                 title="Roadmap"
-                value={stats ? `${stats.goals.completion_pct}%` : "—"}
+                value={stats?.goals?.completion_pct != null ? `${stats.goals.completion_pct}%` : "—"}
                 badge="Progress"
                 icon={<Milestone className="h-3.5 w-3.5 text-black" />}
                 description="Milestone 3 target"
-                bgClass="bg-[#E8D5F5]"
+                bgClass="bg-[#F3E5F5] hover:bg-[#E1BEE7]"
               />
               <MiniStatCard
                 title="Streak"
@@ -112,7 +137,7 @@ export default function DashboardPage() {
                 badge="Active"
                 icon={<Flame className="h-3.5 w-3.5 text-black" />}
                 description="Actions logged daily"
-                bgClass="bg-[#FDEBD0]"
+                bgClass="bg-[#FFF3E0] hover:bg-[#FFE0B2]"
               />
             </div>
 
@@ -120,8 +145,8 @@ export default function DashboardPage() {
             <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white">
               <CardHeader className="pb-3 pt-5 px-5 space-y-1 border-b-2 border-black bg-white shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-none border-2 border-black bg-[#FFF9C4] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                    <Sparkles className="h-4 w-4 text-amber-800" />
+                  <div className="rounded-none border-2 border-black bg-[#E0F7FA] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                    <Sparkles className="h-4 w-4 text-cyan-700" />
                   </div>
                   <CardTitle className="font-serif text-base font-black text-neutral-900 tracking-tight">
                     AI Nudge System
@@ -132,31 +157,31 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="px-5 pb-5 flex-1 overflow-y-auto space-y-2 pt-4">
-                {nudges.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-none border-2 border-black bg-[#FEFDE8] p-5 text-center">
-                    <p className="font-serif text-sm font-black text-amber-900">No warning flags triggered</p>
-                    <p className="font-sans text-[11px] text-amber-700 max-w-xs mt-1.5 leading-relaxed">
+                {!nudges || nudges.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-none border-2 border-black bg-[#F9FBE7] p-5 text-center">
+                    <p className="font-serif text-sm font-black text-lime-900">No warning flags triggered</p>
+                    <p className="font-sans text-[11px] text-neutral-500 max-w-xs mt-1.5 leading-relaxed">
                       Expand your core index metrics to unlock predictive semantic tracking signals.
                     </p>
                   </div>
                 ) : (
                   nudges.map((nudge) => (
-                    <div key={nudge.id} className="rounded-none border-2 border-black bg-[#FFF9C4] p-2.5 flex gap-2 items-start group hover:bg-yellow-100 transition-colors">
-                      <p className="flex-1 text-xs leading-relaxed text-neutral-800 font-medium min-w-0">{nudge.body}</p>
-                      <button onClick={() => handleMarkRead(nudge.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-amber-600 transition-all text-xs">✕</button>
+                    <div key={nudge.id} className="rounded-none border-2 border-black bg-[#FFFDE7] p-2.5 flex gap-2 items-start group hover:bg-[#FFF9C4] shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-colors">
+                      <p className="flex-1 text-xs leading-relaxed text-neutral-900 font-bold min-w-0">{nudge.body || nudge.message}</p>
+                      <button onClick={() => handleMarkRead(nudge.id)} className="shrink-0 text-neutral-400 hover:text-rose-600 transition-all text-xs font-mono font-black">✕</button>
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
 
-            {/* ── BOTTOM LEFT: KANBAN PREVIEW ── */}
+            {/* ── BOTTOM LEFT: DYNAMIC KANBAN PREVIEW ── */}
             <Link href="/tracker?view=kanban" className="group block transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5">
-              <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white transition-all duration-150 group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+              <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white transition-all duration-150 group-hover:bg-[#FFFDE7] group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
                 <CardHeader className="pb-3 pt-5 px-5 flex flex-row items-center justify-between space-y-0 border-b-2 border-black">
                   <div className="flex items-center gap-2">
-                    <div className="rounded-none border-2 border-black bg-[#FFF9C4] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                      <KanbanSquare className="h-4 w-4 text-amber-800 shrink-0" />
+                    <div className="rounded-none border-2 border-black bg-[#FFF59D] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                      <KanbanSquare className="h-4 w-4 text-black shrink-0" />
                     </div>
                     <div>
                       <CardTitle className="font-serif text-base font-black text-neutral-900 tracking-tight">Kanban Board</CardTitle>
@@ -167,22 +192,47 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="px-5 pb-5 pt-4 flex-1 flex items-center">
                   <div className="grid grid-cols-4 w-full rounded-none border-2 border-black overflow-hidden">
-                    <KanbanCol count={stats?.applications.by_status.applied ?? 0} label="Applied" active />
-                    <KanbanCol count={stats?.applications.by_status.interviewing ?? 0} label="Interview" />
-                    <KanbanCol count={stats?.applications.by_status.offer ?? 0} label="Offer" />
-                    <KanbanCol count={stats?.applications.by_status.rejected ?? 0} label="Rejected" last />
+                    <KanbanCol 
+                      count={stats?.applications?.by_status?.applied ?? 0} 
+                      label="Applied" 
+                      activeBg="bg-[#E3F2FD]" 
+                      activeText="text-blue-900"
+                      activeLabel="text-blue-700"
+                    />
+                    <KanbanCol 
+                      count={stats?.applications?.by_status?.interviewing ?? 0} 
+                      label="Interview" 
+                      activeBg="bg-[#FFF3E0]" 
+                      activeText="text-amber-900"
+                      activeLabel="text-amber-700"
+                    />
+                    <KanbanCol 
+                      count={stats?.applications?.by_status?.offer ?? 0} 
+                      label="Offer" 
+                      activeBg="bg-[#E8F5E9]" 
+                      activeText="text-emerald-900"
+                      activeLabel="text-emerald-700"
+                    />
+                    <KanbanCol 
+                      count={stats?.applications?.by_status?.rejected ?? 0} 
+                      label="Rejected" 
+                      activeBg="bg-neutral-100" 
+                      activeText="text-neutral-500"
+                      activeLabel="text-neutral-500"
+                      last 
+                    />
                   </div>
                 </CardContent>
               </Card>
             </Link>
 
-            {/* ── BOTTOM RIGHT: CALENDAR PREVIEW ── */}
+            {/* ── BOTTOM RIGHT: CATEGORY COLORIZED CALENDAR PREVIEW ── */}
             <Link href="/tracker?view=calendar" className="group block transform transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5">
-              <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white transition-all duration-150 group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+              <Card className="flex flex-col overflow-hidden rounded-none border-2 border-black bg-white transition-all duration-150 group-hover:bg-[#FCE4EC] group-hover:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
                 <CardHeader className="pb-3 pt-4 px-5 flex flex-row items-center justify-between space-y-0 border-b-2 border-black shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-none border-2 border-black bg-[#E8D5F5] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
-                      <CalendarDays className="h-4 w-4 text-purple-800 shrink-0" />
+                    <div className="rounded-none border-2 border-black bg-[#F8BBD0] p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
+                      <CalendarDays className="h-4 w-4 text-black shrink-0" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -198,7 +248,6 @@ export default function DashboardPage() {
                 </CardHeader>
 
                 <CardContent className="px-3 pb-3 pt-2 flex-1 overflow-hidden">
-                  {/* Day-of-week headers */}
                   <div className="grid grid-cols-7 mb-0.5">
                     {WEEK_HEADERS.map((d) => (
                       <div key={d} className="text-center text-[9px] font-mono font-black text-neutral-400 uppercase py-1">
@@ -207,37 +256,46 @@ export default function DashboardPage() {
                     ))}
                   </div>
 
-                  {/* Date cells */}
                   <div className="grid grid-cols-7 gap-px bg-black border border-black">
                     {cells.map((day, i) => {
                       if (!day) {
                         return <div key={`blank-${i}`} className="bg-neutral-50 min-h-8.5" />;
                       }
+                      
                       const dayEvents = calEvents.filter(
                         (e) => new Date(e.start_dt).getDate() === day
                       );
+                      const hasEvents = dayEvents.length > 0;
+                      const mainEvent = dayEvents[0];
+                      const theme = hasEvents ? getEventStyles(mainEvent.category) : null;
                       const isToday = todayDay === day;
+                      
                       return (
                         <div
                           key={day}
                           className={cn(
-                            "flex flex-col min-h-8.5 p-0.5 bg-white",
+                            "flex flex-col min-h-8.5 p-0.5 transition-colors relative overflow-hidden",
+                            hasEvents ? theme?.cell : "bg-white",
                             isToday && "bg-amber-50 ring-2 ring-amber-500 ring-inset z-10"
                           )}
                         >
-                          <span className={cn(
-                            "text-[9px] font-mono font-black leading-none px-0.5 pt-0.5",
-                            isToday ? "text-amber-700" : "text-black"
-                          )}>
-                            {day}
-                          </span>
-                          {dayEvents.slice(0, 1).map((e) => (
-                            <div key={e.id} className="mt-0.5 bg-[#E8D5F5] border border-purple-300 px-0.5 overflow-hidden">
-                              <span className="text-[7px] font-bold text-purple-900 uppercase truncate block leading-tight">
-                                {e.title}
+                          <div className="flex justify-between items-center px-0.5 pt-0.5">
+                            <span className={cn(
+                              "text-[9px] font-mono font-black leading-none",
+                              isToday ? "text-amber-700 underline underline-offset-1" : "text-black"
+                            )}>
+                              {day}
+                            </span>
+                            {hasEvents && <span className={cn("h-1 w-1 rounded-full block shrink-0", theme?.dot)} />}
+                          </div>
+                          
+                          {hasEvents && (
+                            <div className="mt-0.5 px-0.5 overflow-hidden">
+                              <span className={cn("text-[6.5px] font-black uppercase tracking-tighter truncate block leading-tight", theme?.text)}>
+                                {mainEvent.title}
                               </span>
                             </div>
-                          ))}
+                          )}
                         </div>
                       );
                     })}
@@ -266,7 +324,7 @@ interface MiniStatCardProps {
 
 function MiniStatCard({ title, value, badge, icon, description, bgClass = "bg-white" }: MiniStatCardProps) {
   return (
-    <Card className={cn("flex flex-col justify-between rounded-none border-2 border-black p-3 shadow-sm", bgClass)}>
+    <Card className={cn("flex flex-col justify-between rounded-none border-2 border-black p-3 shadow-sm transition-colors duration-150", bgClass)}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="font-mono text-[9px] font-black tracking-wider text-neutral-700 uppercase">{title}</span>
         <div className="shrink-0 rounded-none border-2 border-black bg-white p-1 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
@@ -284,22 +342,32 @@ function MiniStatCard({ title, value, badge, icon, description, bgClass = "bg-wh
   );
 }
 
-function KanbanCol({ count, label, active = false, last = false }: { count: number; label: string; active?: boolean; last?: boolean }) {
+interface KanbanColProps {
+  count: number;
+  label: string;
+  activeBg: string;
+  activeText: string;
+  activeLabel: string;
+  last?: boolean;
+}
+
+function KanbanCol({ count, label, activeBg, activeText, activeLabel, last = false }: KanbanColProps) {
+  const isPopulated = count > 0;
   return (
     <div className={cn(
-      "flex flex-col items-center py-5",
-      active ? "bg-[#D6E8F5]" : "bg-white",
+      "flex flex-col items-center py-5 transition-colors duration-150",
+      isPopulated ? activeBg : "bg-white",
       !last && "border-r-2 border-black"
     )}>
       <span className={cn(
         "text-2xl font-mono font-black",
-        active ? "text-blue-900" : "text-neutral-300"
+        isPopulated ? activeText : "text-neutral-300"
       )}>
         {count}
       </span>
       <span className={cn(
         "text-[9px] uppercase tracking-wider font-black mt-0.5",
-        active ? "text-blue-700" : "text-neutral-300"
+        isPopulated ? activeLabel : "text-neutral-300"
       )}>
         {label}
       </span>

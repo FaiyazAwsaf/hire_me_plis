@@ -86,7 +86,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="w-full h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10 select-none">
+    <div className="w-full h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
 
       {/* GRID CANVAS LAYER */}
       <div
