@@ -13,7 +13,8 @@ import {
   Sparkles,
   KanbanSquare,
   CalendarDays,
-  ArrowUpRight
+  ArrowUpRight,
+  AlertTriangle
 } from "lucide-react";
 import api from "@/lib/api";
 import { useDashboardStore } from "@/store/dashboard";
@@ -26,6 +27,9 @@ const WEEK_HEADERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 export default function DashboardPage() {
   const { stats, nudges, setStats, setNudges, markNudgeRead } = useDashboardStore();
   const [calEvents, setCalEvents] = useState<CalendarEvent[]>([]);
+  
+  // ── CV STATE INTEGRATION ──
+  const [hasCv, setHasCv] = useState<boolean | null>(null);
 
   const today = new Date();
   const isJune2026 = today.getFullYear() === 2026 && today.getMonth() === 5;
@@ -37,6 +41,18 @@ export default function DashboardPage() {
   ];
 
   useEffect(() => {
+    // Fetch CV verification status
+    api.get<{ status: string }>("/cv/status")
+      .then((r) => {
+        const cvStatus = r.data.status.toLowerCase();
+        if (["ready", "completed", "embedded", "processed"].includes(cvStatus)) {
+          setHasCv(true);
+        } else {
+          setHasCv(false);
+        }
+      })
+      .catch(() => setHasCv(false));
+
     api.get<typeof stats>("/dashboard/stats").then((r) => setStats(r.data!)).catch(console.error);
     api.get<{ nudges: typeof nudges; unread_count: number }>("/nudges")
       .then((r) => setNudges(r.data.nudges, r.data.unread_count))
@@ -51,7 +67,6 @@ export default function DashboardPage() {
     await api.patch(`/nudges/${nudgeId}/read`).catch(console.error);
   }
 
-  // Restored Calendar category-to-color mapper from Dashboard 1
   const getEventStyles = (category: string) => {
     switch (category?.toLowerCase()) {
       case "learning":
@@ -93,14 +108,30 @@ export default function DashboardPage() {
       <div className="relative z-10 mx-auto max-w-5xl animate-in fade-in duration-200 text-left">
         <div className="space-y-8 rounded-none border-2 border-black bg-white p-6 shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:p-8">
 
-          {/* HEADER */}
-          <div className="flex flex-col gap-1 pb-6 border-b-2 border-black">
-            <h1 className="font-serif text-3xl md:text-4xl font-black tracking-tight text-neutral-900">
-              Progress Dashboard
-            </h1>
-            <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
-              Overview of your active job application workflows, daily milestones, and automated insights.
-            </p>
+          {/* HEADER WITH CLICKABLE CV BANNER */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b-2 border-black">
+            <div className="flex flex-col gap-1">
+              <h1 className="font-serif text-3xl md:text-4xl font-black tracking-tight text-neutral-900">
+                Progress Dashboard
+              </h1>
+              <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
+                Overview of your active job application workflows, daily milestones, and automated insights.
+              </p>
+            </div>
+
+            {/* CLICKABLE WARNING BANNER */}
+            {hasCv === false && (
+              <Link 
+                href="/cv/upload" 
+                className="sm:self-center shrink-0 flex items-center gap-2 rounded-none border-2 border-black bg-rose-100 p-2.5 shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] cursor-pointer group"
+              >
+                <AlertTriangle className="h-4 w-4 text-rose-700 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="font-mono text-[10px] font-black text-rose-950 uppercase tracking-tight group-hover:underline">
+                  Missing CV — Click to Upload
+                </span>
+                <ArrowUpRight className="h-3 w-3 text-rose-700 ml-0.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -311,8 +342,7 @@ export default function DashboardPage() {
   );
 }
 
-// ── Sub-components ──────────────────────────────────────────
-
+// Sub-components keep identical declarations...
 interface MiniStatCardProps {
   title: string;
   value: string | number;

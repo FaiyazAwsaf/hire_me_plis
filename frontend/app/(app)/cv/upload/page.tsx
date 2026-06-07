@@ -29,10 +29,10 @@ const maxFileBytes = 10 * 1024 * 1024;
 const acceptedExtensions = [".pdf", ".docx"];
 
 const PROCESS_STEPS = [
-  { id: 1, label: "READING RESUME", statusKey: "uploading", desc: "Parsing source file contents" },
-  { id: 2, label: "EXTRACTING SKILLS", statusKey: "processing_skills", desc: "Classifying technical & soft competencies into sections" },
-  { id: 3, label: "MAPPING EXPERIENCE", statusKey: "processing", desc: "Analyzing work history metrics and seniority level vectors" },
-  { id: 4, label: "ANCHORING PROFILE", statusKey: "ready", desc: "Storing document matrices into the vector matching database" }
+  { id: 1, label: "PARSING", statusKey: "uploading", desc: "Parsing source file contents" },
+  { id: 2, label: "MAPPING SECTIONS", statusKey: "processing_skills", desc: "Classifying technical & soft competencies into sections" },
+  { id: 3, label: "EMBEDDING", statusKey: "processing", desc: "Analyzing work history metrics and seniority level vectors" },
+  { id: 4, label: "CONVERTING TO VECTORS", statusKey: "ready", desc: "Storing document matrices into the vector matching database" }
 ];
 
 export default function UploadPage() {
@@ -45,6 +45,7 @@ export default function UploadPage() {
   const [timerIntervalId, setTimerIntervalId] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   const startTimer = () => {
     if (timerIntervalId) window.clearInterval(timerIntervalId);
@@ -121,6 +122,13 @@ export default function UploadPage() {
         setStatus("ready");
         stopTimer();
         setStatusText("CV embedded and ready for matching.");
+        
+        // Trigger the 5-second success notification overlay
+        setShowSuccessBanner(true);
+        window.setTimeout(() => {
+          setShowSuccessBanner(false);
+        }, 5000);
+
         notify({ 
           title: "Resume Uploaded", 
           description: "Your resume has been proceed. Click 'Search Jobs' to find matching positions.", 
@@ -166,6 +174,7 @@ export default function UploadPage() {
       return;
     }
 
+    setShowSuccessBanner(false);
     setStatus("uploading");
     setStatusText("Uploading resume...");
     setCurrentStep(1);
@@ -225,7 +234,7 @@ export default function UploadPage() {
         }}
       />
 
-      {/* CORE WORKSPACE SYSTEM PANEL COMPONENT (Main outer boundary stays border-2 for hierarchy) */}
+      {/* CORE WORKSPACE SYSTEM PANEL COMPONENT */}
       <div className="relative z-10 mx-auto w-full max-w-3xl flex flex-col rounded-none border-2 border-black bg-white shadow-[4px_4px_0px_rgba(0,0,0,1)] overflow-hidden p-6 space-y-6">
         <ToastViewport toasts={toasts} onDismiss={dismissToast} />
         
@@ -245,7 +254,7 @@ export default function UploadPage() {
           </Link>
         </div>
 
-        {/* Upload Container Box (Refined to border-1) */}
+        {/* Upload Container Box */}
         <Card className="rounded-none border border-black bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)]">
           <CardHeader className="border-b border-black bg-neutral-50 p-4">
             <CardTitle className="text-xs font-mono font-black uppercase tracking-widest text-black">Upload your CV</CardTitle>
@@ -262,7 +271,7 @@ export default function UploadPage() {
               onChange={(event) => handleFileSelect(event.target.files?.[0] || null)}
             />
             
-            {/* Interactive Drop Box (Refined to border-1) */}
+            {/* Interactive Drop Box */}
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -295,7 +304,7 @@ export default function UploadPage() {
               </div>
             </button>
 
-            {/* Inline Status Readout Info bar (Refined to border-1) */}
+            {/* Inline Status Readout Info bar */}
             <div className="flex items-center gap-2 rounded-none border border-black bg-neutral-50 p-3 text-xs font-sans font-medium text-neutral-800">
               {(status === "uploading" || status === "processing") && (
                 <span className="h-2 w-2 rounded-none border border-black bg-amber-400 animate-pulse" />
@@ -307,7 +316,7 @@ export default function UploadPage() {
               <span className="font-mono text-[11px] font-black uppercase tracking-tight text-black">{statusText}</span>
             </div>
 
-            {/* Upload Button Component (Refined to border-1) */}
+            {/* Upload Button Component */}
             <Button
               type="button"
               className="w-full h-11 rounded-none border border-primary bg-primary text-xs font-mono font-black uppercase text-primary-foreground hover:bg-primary/90 shadow-[2px_2px_0px_rgba(0,0,0,1)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none"
@@ -319,9 +328,9 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        {/* LIVE OPERATIONAL PROCESS PIPELINE BOX (Refined container to border-1 and shadow adjusted) */}
+        {/* LIVE OPERATIONAL PROCESS PIPELINE BOX */}
         {(status === "uploading" || status === "processing" || status === "ready" || status === "failed") && (
-          <div className="w-full rounded-none border border-black bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)] text-left animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full rounded-none border border-black bg-white shadow-[2px_2px_0px_rgba(0,0,0,1)] text-left animate-in fade-in zoom-in-95 duration-200 relative">
             {/* Top Step Counter Header Row */}
             <div className="flex items-center justify-between border-b border-primary bg-primary px-4 py-2 text-[10px] font-mono font-black uppercase tracking-widest text-primary-foreground">
               <span>LIVE PIPELINE SCAN IN PROGRESS</span>
@@ -359,7 +368,7 @@ export default function UploadPage() {
                         stepState === "completed" ? "opacity-100" : "opacity-25"
                       }`}
                     >
-                      {/* Step Checkbox Icon Container Box (Refined to border-1) */}
+                      {/* Step Checkbox Icon Container Box */}
                       <div className={`h-6 w-6 shrink-0 flex items-center justify-center border border-black rounded-none shadow-[1px_1px_0px_rgba(0,0,0,1)] ${
                         stepState === "completed" ? "bg-primary text-primary-foreground" : "bg-white text-black"
                       }`}>
@@ -381,22 +390,31 @@ export default function UploadPage() {
               </div>
 
               {/* Terminal Footer Info Stream */}
-              <div className="flex items-center gap-4 text-[10px] font-mono font-black uppercase text-neutral-400 tracking-wider pt-2 border-t border-neutral-100">
-                <div className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-none bg-neutral-400 inline-block animate-ping" />
-                  <span className="h-1.5 w-1.5 rounded-none bg-neutral-400 inline-block" />
-                  <span className="h-1.5 w-1.5 rounded-none bg-neutral-400 inline-block" />
+              <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider pt-2 border-t border-neutral-100">
+                <div className="flex items-center gap-4 text-neutral-400">
+                  <div className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-none bg-neutral-400 inline-block animate-ping" />
+                    <span className="h-1.5 w-1.5 rounded-none bg-neutral-400 inline-block" />
+                    <span className="h-1.5 w-1.5 rounded-none bg-neutral-400 inline-block" />
+                  </div>
+                  <span>FILE READY FOR ENGINE MATRIX</span>
+                  <span>{secondsElapsed}S ELAPSED</span>
                 </div>
-                <span>FILE READY FOR ENGINE MATRIX</span>
-                <span>{secondsElapsed}S ELAPSED</span>
               </div>
             </div>
+
+            {/* NEO-BRUTALIST OVERLAY SUCCESS BANNER MATCHING image_312b5c.png */}
+            {showSuccessBanner && (
+              <div className="absolute bottom-0 right-0 bg-[#CCFF00] border-l-2 border-t-2 border-black px-6 py-2.5 font-mono text-xs font-black uppercase tracking-wider text-black shadow-none animate-in fade-in slide-in-from-bottom-2 duration-300 z-20">
+                Resume Uploaded!
+              </div>
+            )}
           </div>
         )}
 
         <Separator className="border-b border-black bg-transparent border-t-0 my-2" />
 
-        {/* Documentation / Info Block (Refined to border-1) */}
+        {/* Documentation / Info Block */}
         <div className="rounded-none border border-black bg-neutral-50 p-4 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
           <h2 className="mb-4 text-xs font-mono font-black uppercase tracking-widest text-black">Operational Framework</h2>
           <ul className="space-y-3 text-xs font-sans text-neutral-800">

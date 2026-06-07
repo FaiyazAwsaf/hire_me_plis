@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, MapPin, DollarSign, Calendar, BrainCircuit, ArrowRight, SlidersHorizontal } from "lucide-react";
+import { Search, MapPin, DollarSign, Calendar, BrainCircuit, ArrowRight, SlidersHorizontal, CheckSquare, Square, AlertCircle, Upload } from "lucide-react";
 import api from "@/lib/api";
 import { useJobsStore, type JobCard } from "@/store/jobs";
 
@@ -20,17 +20,87 @@ function JobsSearchContent() {
 
   const [error, setError] = useState<string | null>(null);
   const [locationType, setLocationType] = useState<"all" | "remote" | "on-site" | "hybrid">("all");
+  const [hasCv, setHasCv] = useState<boolean | null>(null); // null = checking, false = missing, true = present
+  
+  // Track specific checklist items from Screenshot 2026-06-08 013036.png
+  const [currentStep, setCurrentStep] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
-  // Filter results by location type (when backend supports it)
+  const workflowSteps = [
+    { label: "READING RESUME", subtext: "Parsing files into target index arrays" },
+    { label: "EXTRACTING SKILLS", subtext: "Isolating verified domain tools and profiles" },
+    { label: "MAPPING EXPERIENCE", subtext: "Analyzing work history and seniority level" },
+    { label: "QUERYING WORKSPACES", subtext: "Running deep natural-language vectors" },
+    { label: "FILTERING RESULTS", subtext: "Applying target coordinates and boundaries" },
+    { label: "RANKING MATCHES", subtext: "Evaluating semantic model fit score weights" }
+  ];
+
+  // Proactively check CV status on initialization before searching
+  useEffect(() => {
+    async function checkCvPresence() {
+      try {
+        const response = await api.get<{ status: string }>("/cv/status");
+        const cvStatus = response.data.status.toLowerCase();
+        
+        if (["ready", "completed", "embedded", "processed"].includes(cvStatus)) {
+          setHasCv(true);
+        } else {
+          setHasCv(false);
+          setError("No CV on file. Upload your CV first so fit scoring can run.");
+        }
+      } catch (err) {
+        // If 404 error code drops or fails, we infer no CV exists
+        setHasCv(false);
+        setError("No CV on file. Upload your CV first so fit scoring can run.");
+      }
+    }
+    checkCvPresence();
+  }, []);
+
+  // Logic timers mirroring live progress dashboard parameters
+  useEffect(() => {
+    let workflowInterval: NodeJS.Timeout;
+    let timerInterval: NodeJS.Timeout;
+
+    if (isSearching) {
+      setCurrentStep(0);
+      setElapsedTime(0);
+
+      // Increment elapsed time counter every second
+      timerInterval = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+
+      // Transition across pipeline steps sequentially
+      workflowInterval = setInterval(() => {
+        setCurrentStep((prev) => {
+          if (prev < workflowSteps.length - 1) return prev + 1;
+          return prev; // Stay on final step until API returns data
+        });
+      }, 800);
+    }
+
+    return () => {
+      clearInterval(workflowInterval);
+      clearInterval(timerInterval);
+    };
+  }, [isSearching]);
+
   const processedJobs = results.filter((job) => {
     if (locationType === "all") return true;
-    // TODO: backend should filter by location_type; for now just return all
     return true;
   }).sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
 
   async function handleSearch(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!query.trim()) return;
+    
+    // Block searching if we already determined the CV is missing
+    if (hasCv === false) {
+      setError("No CV on file. Upload your CV first so fit scoring can run.");
+      return;
+    }
+
     setError(null);
     setSearching(true);
 
@@ -44,11 +114,13 @@ function JobsSearchContent() {
       const status = (err as { response?: { status?: number } })?.response?.status;
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(
-        status === 404
-          ? "No CV on file. Upload your CV first so fit scoring can run."
-          : (detail ?? "Search failed. Please try again.")
-      );
+      
+      if (status === 404) {
+        setHasCv(false);
+        setError("No CV on file. Upload your CV first so fit scoring can run.");
+      } else {
+        setError(detail ?? "Search failed. Please try again.");
+      }
     } finally {
       setSearching(false);
     }
@@ -84,28 +156,46 @@ function JobsSearchContent() {
             </p>
           </div>
 
+          {/* PRE-SEARCH CV CHECK WARNING BOX */}
+          {hasCv === false && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-none border-2 border-black bg-amber-50 p-4 shadow-[3px_3px_0px_rgba(0,0,0,1)] animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="font-mono text-xs font-black uppercase text-neutral-900">Missing CV</p>
+                  <p className="font-sans text-xs text-neutral-600">Upload a resume before searching for jobs.</p>
+                </div>
+              </div>
+              <Link href="/cv/upload">
+                <Button className="h-9 rounded-none border border-black bg-black px-4 font-mono text-[11px] font-black uppercase tracking-wider text-white hover:bg-neutral-800 transition-colors flex items-center gap-2 shrink-0 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>Upload Resume</span>
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* --- SEARCH & FILTER BOX --- */}
           <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3 rounded-none border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_rgba(0,0,0,1)]">
-
-            {/* Search Input Field */}
             <div className="flex-1 flex items-center gap-3 px-2 py-1 bg-neutral-50/50 border border-transparent focus-within:border-black transition-colors">
               <Search className="h-5 w-5 text-black shrink-0" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="e.g., Find me ML internships in Dhaka open this month..."
-                className="flex-1 border-0 h-10 rounded-none bg-transparent font-sans text-base p-0 text-black focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-neutral-400"
+                disabled={hasCv === false}
+                placeholder={hasCv === false ? "Please upload your CV first..." : "e.g., Find me ML internships in Dhaka open this month..."}
+                className="flex-1 border-0 h-10 rounded-none bg-transparent font-sans text-base p-0 text-black focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-neutral-400 disabled:cursor-not-allowed"
               />
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              {/* Filter Dropdown */}
               <div className="relative flex items-center h-12 border border-black bg-white px-3 shadow-[1px_1px_0px_rgba(0,0,0,1)]">
                 <SlidersHorizontal className="h-4 w-4 mr-2 text-black shrink-0" />
                 <select
                   value={locationType}
                   onChange={(e) => setLocationType(e.target.value as any)}
-                  className="font-mono text-xs font-black uppercase tracking-wider bg-transparent border-0 rounded-none h-full text-black focus:outline-none focus:ring-0 cursor-pointer pr-4"
+                  disabled={hasCv === false}
+                  className="font-mono text-xs font-black uppercase tracking-wider bg-transparent border-0 rounded-none h-full text-black focus:outline-none focus:ring-0 cursor-pointer pr-4 disabled:cursor-not-allowed"
                 >
                   <option value="all">All Types</option>
                   <option value="remote">Remote</option>
@@ -114,32 +204,103 @@ function JobsSearchContent() {
                 </select>
               </div>
 
-              {/* Action Button */}
               <Button
                 type="submit"
-                disabled={isSearching}
-                className="h-12 rounded-none border border-primary bg-primary px-8 font-mono text-xs font-black uppercase tracking-wider text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                disabled={isSearching || hasCv === false}
+                className="h-12 rounded-none border border-black bg-black px-8 font-mono text-xs font-black uppercase tracking-wider text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {isSearching ? "Searching…" : "Search"}
               </Button>
             </div>
           </form>
 
-          {/* --- RESULTS SECTION --- */}
+          {/* --- RESULTS AREA --- */}
           <div className="space-y-4 pt-2">
-            {error && (
-              <div className="rounded-none border border-red-300 bg-red-50 p-4 text-sm text-red-700 font-mono">
+            {error && hasCv !== false && (
+              <div className="rounded-none border-2 border-black bg-rose-50 p-4 text-sm text-rose-900 font-mono font-bold shadow-[2px_2px_0px_rgba(0,0,0,1)]">
                 {error}
               </div>
             )}
 
             {isSearching ? (
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="rounded-none border-2 border-black animate-pulse">
-                    <CardContent className="h-32" />
-                  </Card>
-                ))}
+              /* RESTORED SPLIT SCREEN CHEKLIST LOADER PANEL FROM SCREENSHOT */
+              <div className="w-full border-2 border-black bg-white overflow-hidden shadow-[4px_4px_0px_rgba(0,0,0,1)] animate-in fade-in duration-200">
+                
+                {/* Loader Header Ticker Banner */}
+                <div className="bg-black text-white px-4 py-2.5 flex justify-between items-center font-mono text-[10px] tracking-widest uppercase font-black">
+                  <span>Live Search in Progress</span>
+                  <span className="text-neutral-400">Step {currentStep + 1} of {workflowSteps.length}</span>
+                </div>
+
+                {/* Progress Bar Line */}
+                <div className="w-full bg-neutral-200 h-1.5 border-b border-black">
+                  <div 
+                    className="bg-black h-full transition-all duration-300"
+                    style={{ width: `${((currentStep + 1) / workflowSteps.length) * 100}%` }}
+                  />
+                </div>
+
+                <div className="p-6 md:p-8 space-y-6">
+                  {/* Current Stage Large Headline readout */}
+                  <div className="space-y-1">
+                    <span className="font-mono text-[9px] uppercase font-black tracking-widest text-neutral-400 block">Currently</span>
+                    <h2 className="font-serif text-2xl md:text-3xl font-black text-neutral-900 tracking-tight capitalize">
+                      {workflowSteps[currentStep].label.toLowerCase()}
+                    </h2>
+                    <p className="font-sans text-xs text-neutral-500 font-medium">
+                      {workflowSteps[currentStep].subtext}
+                    </p>
+                  </div>
+
+                  <hr className="border-neutral-200" />
+
+                  {/* Dual Grid Pipeline Status Items */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                    {workflowSteps.map((step, idx) => {
+                      const isCompleted = idx < currentStep;
+                      const isActive = idx === currentStep;
+                      
+                      return (
+                        <div 
+                          key={step.label}
+                          className={cn(
+                            "flex items-center gap-3 py-2 border-b border-neutral-100 transition-all duration-150",
+                            isCompleted && "opacity-80",
+                            isActive && "border-b-black bg-neutral-50 px-2",
+                            !isActive && !isCompleted && "opacity-25"
+                          )}
+                        >
+                          {isCompleted ? (
+                            <CheckSquare className="h-4 w-4 text-black shrink-0 fill-neutral-900 text-white" />
+                          ) : isActive ? (
+                            <div className="h-4 w-4 border-2 border-black bg-white flex items-center justify-center shrink-0">
+                              <div className="h-1.5 w-1.5 bg-black animate-pulse" />
+                            </div>
+                          ) : (
+                            <Square className="h-4 w-4 text-neutral-400 shrink-0" />
+                          )}
+                          
+                          <span className={cn(
+                            "font-mono text-xs tracking-wider",
+                            isActive ? "font-black text-black" : "font-bold text-neutral-800"
+                          )}>
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Dashboard Metrics footer data readout */}
+                  <div className="pt-4 flex items-center gap-6 border-t-2 border-dashed border-neutral-200 font-mono text-[10px] uppercase font-black text-neutral-400">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-block h-2 w-2 rounded-full bg-black animate-ping" />
+                      <span className="text-black">Evaluating matching index clusters</span>
+                    </div>
+                    <div>{elapsedTime}s elapsed</div>
+                  </div>
+
+                </div>
               </div>
             ) : results.length === 0 ? (
               <div className="flex h-80 flex-col items-center justify-center rounded-none border border-black bg-neutral-50 p-8 text-center">
@@ -178,7 +339,6 @@ function JobsSearchContent() {
                             </CardDescription>
                           </div>
 
-                          {/* Fit Score Badge */}
                           <div
                             className={cn(
                               "h-14 w-14 rounded-none flex flex-col items-center justify-center font-mono font-black text-base border-2 border-black shrink-0 shadow-[2px_2px_0px_rgba(0,0,0,1)]",
