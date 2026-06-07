@@ -122,7 +122,7 @@ export function Topbar() {
               <div className="p-3 border-b-2 border-black bg-neutral-50 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <h3 className="font-serif font-black text-xs uppercase tracking-wider text-primary flex-1 text-left">
-                  Agent Nudges & Reminders
+                  Reminders
                 </h3>
                 <span className="text-[11px] font-mono text-neutral-500 font-bold uppercase">
                   {unreadCount} unread

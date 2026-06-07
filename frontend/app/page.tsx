@@ -73,7 +73,7 @@ export default function Home() {
             <Link href="/" className="flex items-center select-none">
               <span className="font-serif text-[15px] tracking-wide text-neutral-900 flex items-center gap-[1px]">
                 <span className="font-black tracking-tight uppercase text-black">HIRE ME</span>
-                <span className="inline-block w-[4px] h-[4px] rounded-full bg-black mx-[4px] translate-y-[2px]" />
+                <span className="inline-block w-[4px] h-[4px] rounded-full bg-rose-600 mx-[4px] translate-y-[2px]" />
                 <span className="font-medium italic text-neutral-600 lowercase">plis</span>
               </span>
             </Link>

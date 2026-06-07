@@ -149,7 +149,7 @@ export default function DashboardPage() {
                     <Sparkles className="h-4 w-4 text-cyan-700" />
                   </div>
                   <CardTitle className="font-serif text-base font-black text-neutral-900 tracking-tight">
-                    AI Nudge System
+                    Reminders
                   </CardTitle>
                 </div>
                 <CardDescription className="font-sans text-xs text-neutral-500">
