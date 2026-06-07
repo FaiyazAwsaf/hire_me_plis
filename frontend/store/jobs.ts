@@ -8,8 +8,10 @@ export interface JobCard {
   salary_range: string | null;
   deadline: string | null;
   url: string;
+  source_platform: string | null;
   fit_score: number;
   fit_reasoning: string;
+  missing_skills: string[];
 }
 
 interface JobsState {

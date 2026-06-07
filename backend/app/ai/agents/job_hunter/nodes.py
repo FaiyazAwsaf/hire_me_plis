@@ -131,6 +131,7 @@ async def score_node(state: JobHunterState) -> dict:
                 "source_platform": job.get("source_platform"),
                 "fit_score": result.score,
                 "fit_reasoning": result.explanation,
+                "missing_skills": result.missing_skills,
             }
         except Exception:
             # One job failing scoring should never kill the whole batch

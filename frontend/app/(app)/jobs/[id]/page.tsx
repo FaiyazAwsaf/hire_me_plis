@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -12,13 +12,24 @@ import {
   MapPin,
   DollarSign,
   Calendar,
+  AlertTriangle,
+  FileText,
+  Copy,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { useJobsStore } from "@/store/jobs";
+import api from "@/lib/api";
 
 function JobDetailContent() {
   const { id } = useParams();
   const router = useRouter();
   const job = useJobsStore((s) => s.results.find((j) => j.id === id));
+
+  const [coverLetter, setCoverLetter] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (!job) {
     return (
@@ -44,8 +55,34 @@ function JobDetailContent() {
       ? "bg-amber-50 text-amber-900"
       : "bg-rose-50 text-rose-900";
 
+  async function handleGenerateCoverLetter() {
+    setIsGenerating(true);
+    setGenError(null);
+    setCoverLetter(null);
+    try {
+      const res = await api.post<{ cover_letter: string }>("/jobs/cover-letter", {
+        role: job!.role,
+        company: job!.company,
+        // fit_reasoning is a concise summary of what the role requires vs the user's CV
+        jd_summary: job!.fit_reasoning,
+      });
+      setCoverLetter(res.data.cover_letter);
+    } catch {
+      setGenError("Failed to generate cover letter. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!coverLetter) return;
+    await navigator.clipboard.writeText(coverLetter);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
-    <div className="w-full min-h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
+    <div className="w-full min-h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
 
       {/* Grid background */}
       <div
@@ -119,6 +156,102 @@ function JobDetailContent() {
             <p className="font-sans text-sm leading-relaxed text-neutral-800 mt-1">
               {job.fit_reasoning}
             </p>
+          </div>
+
+          {/* Skill gap section */}
+          {job.missing_skills.length > 0 && (
+            <div className="space-y-3 rounded-none border-2 border-rose-400 bg-rose-50 p-5 md:p-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-2 font-mono text-[10px] font-black text-rose-700 uppercase tracking-wider">
+                <AlertTriangle className="h-3.5 w-3.5 stroke-[3px]" />
+                <span>Skill Gaps — {job.missing_skills.length} missing from your CV</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {job.missing_skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="inline-block rounded-none border-2 border-rose-300 bg-white px-2.5 py-1 font-mono text-xs font-black text-rose-800 uppercase tracking-wide"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+              <p className="font-mono text-[10px] text-rose-600 font-bold mt-1">
+                These skills appear in the job description but were not found in your uploaded CV.
+              </p>
+            </div>
+          )}
+
+          {job.missing_skills.length === 0 && (
+            <div className="space-y-1.5 rounded-none border-2 border-emerald-400 bg-emerald-50 p-5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-2 font-mono text-[10px] font-black text-emerald-700 uppercase tracking-wider">
+                <Sparkles className="h-3.5 w-3.5 stroke-[3px]" />
+                <span>No skill gaps detected — your CV covers all required skills</span>
+              </div>
+            </div>
+          )}
+
+          {/* Cover letter section */}
+          <div className="space-y-4 rounded-none border-2 border-black p-5 md:p-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 font-mono text-[10px] font-black text-neutral-400 uppercase tracking-wider">
+                  <FileText className="h-3.5 w-3.5 stroke-[3px]" />
+                  <span>Cover Letter Generator</span>
+                </div>
+                <p className="font-mono text-[10px] text-neutral-500 font-bold">
+                  AI-written, grounded in your CV — references your actual experience
+                </p>
+              </div>
+
+              <Button
+                onClick={handleGenerateCoverLetter}
+                disabled={isGenerating}
+                className="rounded-none border-2 border-black bg-black text-white hover:bg-neutral-800 font-mono text-xs font-black uppercase tracking-wider px-4 h-10 shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Generating…</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>{coverLetter ? "Regenerate" : "Generate"}</span>
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {genError && (
+              <p className="font-mono text-xs text-rose-600 font-bold">{genError}</p>
+            )}
+
+            {coverLetter && (
+              <div className="space-y-3">
+                <div className="relative rounded-none border-2 border-black bg-neutral-50 p-4">
+                  <pre className="font-sans text-sm leading-relaxed text-neutral-800 whitespace-pre-wrap wrap-break-word">
+                    {coverLetter}
+                  </pre>
+                </div>
+                <Button
+                  onClick={handleCopy}
+                  variant="outline"
+                  className="rounded-none border-2 border-black bg-white font-mono text-xs font-black uppercase tracking-wider h-9 px-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-emerald-600">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Copy to Clipboard</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Footer action row */}

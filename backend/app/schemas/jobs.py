@@ -15,9 +15,10 @@ class JobCard(BaseModel):
     salary_range: str | None = None
     deadline: date | None = None
     url: str
-    source_platform: str | None = None  
+    source_platform: str | None = None
     fit_score: int
     fit_reasoning: str
+    missing_skills: list[str] = []
 
 
 class JobSearchResponse(BaseModel):
@@ -40,3 +41,13 @@ class FitScoreResponse(BaseModel):
     score: int
     breakdown: ScoreBreakdown
     explanation: str
+
+
+class CoverLetterRequest(BaseModel):
+    role: str
+    company: str
+    jd_summary: str  # fit_reasoning or a short description of the role
+
+
+class CoverLetterResponse(BaseModel):
+    cover_letter: str

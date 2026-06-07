@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.jobs import (
+    CoverLetterRequest,
+    CoverLetterResponse,
     FitScoreRequest,
     FitScoreResponse,
     JobSearchRequest,
@@ -27,3 +29,10 @@ async def score_job(body: FitScoreRequest, current_user: _User, db: _DB):
 @router.post("/search", response_model=JobSearchResponse)
 async def search_jobs(body: JobSearchRequest, current_user: _User, db: _DB):
     return await job_service.search_jobs(body.query, current_user.id, db)
+
+
+@router.post("/cover-letter", response_model=CoverLetterResponse)
+async def generate_cover_letter(body: CoverLetterRequest, current_user: _User, db: _DB):
+    return await job_service.generate_cover_letter(
+        body.role, body.company, body.jd_summary, current_user.id, db
+    )
