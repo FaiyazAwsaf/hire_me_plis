@@ -46,31 +46,49 @@ function TrackerContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Real‑time date
+  // Real‑time current date (system clock)
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();
+  const currentMonth = today.getMonth();      // 0‑based
   const currentDayNumber = today.getDate();
   const todayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(currentDayNumber).padStart(2, "0")}`;
 
-  // Calendar navigation: June, July, August 2026
-  const [calendarMonthOffset, setCalendarMonthOffset] = useState(0); // 0 = June, 1 = July, 2 = August
-  const displayYear = 2026;
-  const displayMonth = 5 + calendarMonthOffset;
-  const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
+  // Calendar state: dynamic year and month (unbounded)
+  const [displayYear, setDisplayYear] = useState(currentYear);
+  const [displayMonth, setDisplayMonth] = useState(currentMonth); // 0‑based
 
-  const canGoPrev = calendarMonthOffset > 0;
-  const canGoNext = calendarMonthOffset < 2;
-  const goPrevMonth = () => { if (canGoPrev) setCalendarMonthOffset(prev => prev - 1); };
-  const goNextMonth = () => { if (canGoNext) setCalendarMonthOffset(prev => prev + 1); };
-  const monthNames = ["June", "July", "August"];
+  // Recompute calendar grid when month/year changes
+  const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay(); // Sunday = 0
+
+  const goPrevMonth = () => {
+    if (displayMonth === 0) {
+      setDisplayYear(prev => prev - 1);
+      setDisplayMonth(11);
+    } else {
+      setDisplayMonth(prev => prev - 1);
+    }
+  };
+
+  const goNextMonth = () => {
+    if (displayMonth === 11) {
+      setDisplayYear(prev => prev + 1);
+      setDisplayMonth(0);
+    } else {
+      setDisplayMonth(prev => prev + 1);
+    }
+  };
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   // Application form states
   const [newRole, setNewRole] = useState("");
   const [newCompany, setNewCompany] = useState("");
 
-  // Goal form states (removed calendar‑event extras)
+  // Goal form states
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalDate, setNewGoalDate] = useState(todayStr);
 
@@ -86,7 +104,7 @@ function TrackerContent() {
   const [selectedAgendaDay, setSelectedAgendaDay] = useState<number>(currentDayNumber);
   const [selectedDayInspector, setSelectedDayInspector] = useState<number | null>(null);
 
-  // Load data
+  // Load data – backend still only provides June–August 2026 data (no change)
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -107,27 +125,20 @@ function TrackerContent() {
     loadData();
   }, [setApplications, setGoals, setEvents]);
 
-  // Drag & drop
+  // Drag & drop (unchanged)
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedAppId(id);
     e.dataTransfer.setData("text/plain", id);
     e.dataTransfer.effectAllowed = "move";
   };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
   const handleDrop = async (e: React.DragEvent, newStatus: ApplicationStatus) => {
     e.preventDefault();
     const appId = e.dataTransfer.getData("text/plain") || draggedAppId;
     if (!appId) return;
-
     const app = applications.find(a => a.id === appId);
     const prevStatus = app?.status;
-
     updateApplicationStatus(appId, newStatus);
-
     try {
       await api.patch(`/applications/${appId}/status`, { status: newStatus });
     } catch (err) {
@@ -174,7 +185,7 @@ function TrackerContent() {
     }
   };
 
-  // Add goal – no calendar event creation
+  // Add goal – past‑date validation uses real current date
   const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGoalTitle || !newGoalDate) return;
@@ -207,8 +218,6 @@ function TrackerContent() {
         target_date: newGoalDate,
       });
       addGoal(res.data);
-      // No calendar event creation – goal will automatically appear in day agenda
-
       setNewGoalTitle("");
       setCustomCategoryInput("");
       setShowInlineCustomInput(false);
@@ -241,21 +250,27 @@ function TrackerContent() {
     }
   };
 
-  // Calendar click handler – only future/today
+  // Calendar click handler – only future/today (uses real date)
   const handleDayCellClick = (day: number) => {
     setSelectedAgendaDay(day);
-    if (displayYear === currentYear && displayMonth === currentMonth && day < currentDayNumber) return;
-    if (displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)) return;
+    const clickedDate = new Date(displayYear, displayMonth, day);
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (clickedDate < todayMidnight) return; // past dates cannot be clicked to add
 
-    const dayEvents = events.filter(e => new Date(e.start_dt).getDate() === day);
-    const dayGoals = goals.filter(g => new Date(g.target_date).getDate() === day);
+    const dayEvents = events.filter(e => {
+      const d = new Date(e.start_dt);
+      return d.getDate() === day && d.getMonth() === displayMonth && d.getFullYear() === displayYear;
+    });
+    const dayGoals = goals.filter(g => {
+      const d = new Date(g.target_date);
+      return d.getDate() === day && d.getMonth() === displayMonth && d.getFullYear() === displayYear;
+    });
     if (dayEvents.length > 0 || dayGoals.length > 0) {
       setSelectedDayInspector(day);
     } else {
-      const selectedDate = new Date(displayYear, displayMonth, day);
-      const yyyy = selectedDate.getFullYear();
-      const mm = String(selectedDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(selectedDate.getDate()).padStart(2, "0");
+      const yyyy = displayYear;
+      const mm = String(displayMonth + 1).padStart(2, "0");
+      const dd = String(day).padStart(2, "0");
       setNewGoalDate(`${yyyy}-${mm}-${dd}`);
       setShowGoalForm(true);
       setTimeout(() => {
@@ -268,9 +283,9 @@ function TrackerContent() {
   const activeReminders = goals.filter(goal => {
     if (goal.completed_at) return false;
     const targetDateObj = new Date(goal.target_date);
-    const targetDay = targetDateObj.getDate();
-    const targetMonth = targetDateObj.getMonth();
     const targetYear = targetDateObj.getFullYear();
+    const targetMonth = targetDateObj.getMonth();
+    const targetDay = targetDateObj.getDate();
     if (targetYear !== currentYear || targetMonth !== currentMonth) return false;
     const diff = targetDay - currentDayNumber;
     return diff >= 0 && diff <= 3;
@@ -278,10 +293,16 @@ function TrackerContent() {
 
   // Inspector data for popup
   const inspectorGoals = selectedDayInspector
-    ? goals.filter(g => new Date(g.target_date).getDate() === selectedDayInspector && new Date(g.target_date).getMonth() === displayMonth && new Date(g.target_date).getFullYear() === displayYear)
+    ? goals.filter(g => {
+        const d = new Date(g.target_date);
+        return d.getDate() === selectedDayInspector && d.getMonth() === displayMonth && d.getFullYear() === displayYear;
+      })
     : [];
   const inspectorEvents = selectedDayInspector
-    ? events.filter(e => new Date(e.start_dt).getDate() === selectedDayInspector && new Date(e.start_dt).getMonth() === displayMonth && new Date(e.start_dt).getFullYear() === displayYear)
+    ? events.filter(e => {
+        const d = new Date(e.start_dt);
+        return d.getDate() === selectedDayInspector && d.getMonth() === displayMonth && d.getFullYear() === displayYear;
+      })
     : [];
 
   // Side agenda data
@@ -348,8 +369,17 @@ function TrackerContent() {
           )}
 
           {(activeTab === "calendar" || activeTab === "goals") && (
-            <Button onClick={() => { setShowGoalForm(!showGoalForm); setShowInlineCustomInput(false); setCustomCategoryInput(""); }} size="sm" className="flex h-10 items-center gap-2 rounded-none border-2 border-black bg-primary px-4 text-xs font-mono font-black uppercase text-primary-foreground shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90 transition-colors">
-              <Plus className="h-4 w-4 stroke-[3px]" />
+            <Button
+              onClick={() => { setShowGoalForm(!showGoalForm); setShowInlineCustomInput(false); setCustomCategoryInput(""); }}
+              size="sm"
+              className={cn(
+                "flex h-10 items-center gap-2 rounded-none border-2 px-4 text-xs font-mono font-black uppercase transition-colors shadow-[2px_2px_0px_rgba(0,0,0,1)]",
+                showGoalForm
+                  ? "border-red-600 bg-red-600 text-white hover:bg-red-700"
+                  : "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              {showGoalForm ? <X className="h-4 w-4 stroke-[3px]" /> : <Plus className="h-4 w-4 stroke-[3px]" />}
               {showGoalForm ? "Close" : "Add Goal"}
             </Button>
           )}
@@ -391,9 +421,9 @@ function TrackerContent() {
 
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Select Active Scope</Label>
-                  <select 
-                    value={showInlineCustomInput ? "ADD_NEW_OPTION_TRIGGER" : newTaskCat} 
-                    onChange={e => handleDropdownCategoryChange(e.target.value)} 
+                  <select
+                    value={showInlineCustomInput ? "ADD_NEW_OPTION_TRIGGER" : newTaskCat}
+                    onChange={e => handleDropdownCategoryChange(e.target.value)}
                     className="w-full bg-white border-2 border-black rounded-none h-10 px-3 text-xs font-mono font-black uppercase tracking-tight text-black focus:outline-none capitalize"
                   >
                     {categories.map(cat => (
@@ -410,7 +440,15 @@ function TrackerContent() {
                   </div>
                 )}
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => setShowGoalForm(false)}
+                    className="bg-red-600 text-white hover:bg-red-700 border-2 border-black rounded-none h-10 text-xs font-mono font-black uppercase px-5 shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                  >
+                    <X className="h-3.5 w-3.5 stroke-[3px]" />
+                    Cancel
+                  </Button>
                   <Button type="submit" disabled={saving} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-black rounded-none h-10 text-xs font-mono font-black uppercase px-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
                     {saving ? "…" : "Add Goal"}
                   </Button>
@@ -481,23 +519,21 @@ function TrackerContent() {
 
           {activeTab === "calendar" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              {/* calendar grid with month navigation */}
+              {/* Dynamic calendar grid */}
               <div className="lg:col-span-2 rounded-none border-2 border-black bg-white p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
                 <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-3">
                   <button
                     onClick={goPrevMonth}
-                    disabled={!canGoPrev}
-                    className={cn("p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] disabled:opacity-30", !canGoPrev && "cursor-not-allowed")}
+                    className="p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <span className="text-sm font-mono font-black text-black uppercase tracking-widest">
-                    {monthNames[calendarMonthOffset]} 2026
+                    {monthNames[displayMonth]} {displayYear}
                   </span>
                   <button
                     onClick={goNextMonth}
-                    disabled={!canGoNext}
-                    className={cn("p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] disabled:opacity-30", !canGoNext && "cursor-not-allowed")}
+                    className="p-1 border-2 border-black bg-white shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -518,12 +554,14 @@ function TrackerContent() {
                       const d = new Date(g.target_date);
                       return d.getDate() === day && d.getMonth() === displayMonth && d.getFullYear() === displayYear;
                     });
-                    const isPast = (displayYear === currentYear && displayMonth === currentMonth && day < currentDayNumber) ||
-                                   (displayYear < currentYear) ||
-                                   (displayYear === currentYear && displayMonth < currentMonth);
+                    const isPast = (() => {
+                      const cellDate = new Date(displayYear, displayMonth, day);
+                      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                      return cellDate < todayMidnight;
+                    })();
                     return (
-                      <div 
-                        key={day} 
+                      <div
+                        key={day}
                         onClick={() => handleDayCellClick(day)}
                         className={cn(
                           "p-2 min-h-20 border-2 border-black rounded-none text-xs flex flex-col justify-between transition-colors cursor-pointer",
@@ -552,7 +590,7 @@ function TrackerContent() {
                 </div>
               </div>
 
-              {/* side agenda panel */}
+              {/* Side agenda panel */}
               <div className="rounded-none border-2 border-black bg-neutral-50 p-4 shadow-[4px_4px_0px_rgba(0,0,0,1)] space-y-4 text-left">
                 <div className="border-b-2 border-black pb-2 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-black" />
@@ -560,7 +598,7 @@ function TrackerContent() {
                 </div>
                 <div>
                   <p className="text-[11px] font-mono font-black uppercase text-neutral-500">Selected Workspace Target:</p>
-                  <p className="text-xs font-sans font-black text-black mt-0.5">{monthNames[calendarMonthOffset]} {selectedAgendaDay}, 2026</p>
+                  <p className="text-xs font-sans font-black text-black mt-0.5">{monthNames[displayMonth]} {selectedAgendaDay}, {displayYear}</p>
                 </div>
 
                 <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1 scrollbar-thin divide-y divide-black/5">
@@ -682,9 +720,9 @@ function TrackerContent() {
             <div className="bg-neutral-50 border-b-2 border-black p-4 flex items-center justify-between">
               <div>
                 <h3 className="text-xs font-mono font-black uppercase tracking-wider text-black">Agenda Inspector</h3>
-                <p className="text-[10px] font-sans font-bold text-neutral-500 mt-0.5">{monthNames[calendarMonthOffset]} {selectedDayInspector}, 2026 Operational Commitments</p>
+                <p className="text-[10px] font-sans font-bold text-neutral-500 mt-0.5">{monthNames[displayMonth]} {selectedDayInspector}, {displayYear} Operational Commitments</p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedDayInspector(null)}
                 className="h-7 w-7 border-2 border-black flex items-center justify-center bg-white text-black hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-transform active:translate-x-[1px] active:translate-y-[1px]"
               >
