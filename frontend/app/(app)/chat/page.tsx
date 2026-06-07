@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -50,12 +52,19 @@ export default function ChatPage() {
           finalizeAssistant();
         }
       },
-      () => setError("WebSocket error. Please refresh."),
+      () => { setReady(true); setError(null); },
+      (_e, reason) => {
+        if (reason === "no_token" || reason === "auth_failed") {
+          setError("Session expired. Please log out and log back in.");
+        } else {
+          setError("Connection failed. Make sure the backend is running on port 8000.");
+        }
+        setReady(false);
+      },
       () => setReady(false)
     );
 
     socketRef.current = socket;
-    setReady(true);
     return () => socket.close();
   }, []);
 
@@ -86,7 +95,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="w-full h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
+    <div className="w-full h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
 
       {/* GRID CANVAS LAYER */}
       <div
@@ -240,11 +249,20 @@ function SystemMessage({ text, isStreaming }: { text: string; isStreaming?: bool
       <div className="h-8 w-8 rounded-none bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-mono font-black uppercase shrink-0 border border-primary shadow-[1px_1px_0px_rgba(0,0,0,1)]">
         AI
       </div>
-      <div className="rounded-none border border-black bg-white p-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] flex-1">
-        <p className="font-sans text-sm leading-relaxed text-neutral-900">
-          {text}
-          {isStreaming && <span className="inline-block w-1 h-4 ml-0.5 bg-current animate-pulse align-middle" />}
-        </p>
+      <div className="rounded-none border border-black bg-white p-4 shadow-[2px_2px_0px_rgba(0,0,0,1)] flex-1 min-w-0">
+        <div className="prose prose-sm prose-neutral max-w-none font-sans text-neutral-900
+          [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+          prose-headings:font-black prose-headings:text-black prose-headings:tracking-tight
+          prose-h2:text-base prose-h3:text-sm
+          prose-p:leading-relaxed prose-p:my-1.5
+          prose-li:my-0.5 prose-ul:my-1.5 prose-ol:my-1.5
+          prose-code:bg-neutral-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
+          prose-pre:bg-neutral-900 prose-pre:text-neutral-100 prose-pre:rounded-none prose-pre:border-2 prose-pre:border-black
+          prose-strong:font-black prose-strong:text-black
+          prose-hr:border-black">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          {isStreaming && <span className="inline-block w-1 h-4 ml-0.5 bg-neutral-900 animate-pulse align-middle" />}
+        </div>
       </div>
     </div>
   );
