@@ -48,7 +48,7 @@ export interface CvProfile {
     id: string;
     name: string;
     issuer: string;
-    date: string;
+    date: string | null;
     url: string | null;
   }>;
   updated_at: string;

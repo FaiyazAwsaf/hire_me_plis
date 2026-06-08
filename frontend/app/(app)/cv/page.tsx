@@ -503,7 +503,7 @@ export default function CvPage() {
                         {c.name}
                       </p>
                       <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-500">
-                        {c.issuer} · {c.date}
+                        {c.issuer}{c.date ? ` · ${c.date}` : ""}
                       </p>
                     </div>
                     {c.url && (
@@ -1163,9 +1163,9 @@ function CertificationsEditor({
               <label className={labelCls}>Date (YYYY-MM)</label>
               <input
                 className={inputCls}
-                value={item.date}
+                value={item.date ?? ""}
                 placeholder="2024-06"
-                onChange={(e) => update(idx, "date", e.target.value)}
+                onChange={(e) => update(idx, "date", e.target.value || null)}
               />
             </div>
             <div>

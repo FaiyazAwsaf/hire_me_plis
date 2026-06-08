@@ -98,7 +98,7 @@ class CertEntry(BaseModel):
     id: uuid.UUID
     name: str
     issuer: str
-    date: str  # YYYY-MM
+    date: str | None = None  # YYYY-MM
     url: str | None = None
 
 

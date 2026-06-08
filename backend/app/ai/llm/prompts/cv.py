@@ -56,7 +56,7 @@ Return ONLY valid JSON with this exact shape (no extra fields, no comments):
     {{
       "name": "string",
       "issuer": "string",
-      "date": "YYYY-MM",
+      "date": "YYYY-MM or null",
       "url": "string or null"
     }}
   ]

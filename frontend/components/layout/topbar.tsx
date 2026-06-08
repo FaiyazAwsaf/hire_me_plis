@@ -16,12 +16,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/auth";
 import { useDashboardStore } from "@/store/dashboard";
+import { useCvStore } from "@/store/cv";
+import { useJobsStore } from "@/store/jobs";
+import { useChatStore } from "@/store/chat";
 import api from "@/lib/api";
 
 export function Topbar() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const clearCv = useCvStore((s) => s.clear);
+  const clearJobs = useJobsStore((s) => s.clear);
+  const clearChat = useChatStore((s) => s.clear);
   const { nudges, unreadCount, setNudges, markNudgeRead } = useDashboardStore();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -64,6 +70,9 @@ export function Topbar() {
 
   const handleLogout = () => {
     clearAuth();
+    clearCv();
+    clearJobs();
+    clearChat();
     router.push("/");
   };
 
