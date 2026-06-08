@@ -2,31 +2,67 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, MapPin, DollarSign, Calendar, BrainCircuit, ArrowRight, CheckSquare, Square, AlertCircle, Upload } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  DollarSign,
+  Calendar,
+  BrainCircuit,
+  ArrowRight,
+  CheckSquare,
+  Square,
+  AlertCircle,
+  Upload,
+} from "lucide-react";
 import api from "@/lib/api";
 import { useJobsStore, type JobCard } from "@/store/jobs";
 
 function JobsSearchContent() {
-  const { results, isSearching, query, setResults, setSearching, setQuery } = useJobsStore();
+  const { results, isSearching, query, setResults, setSearching, setQuery } =
+    useJobsStore();
 
   const [error, setError] = useState<string | null>(null);
   const [hasCv, setHasCv] = useState<boolean | null>(null); // null = checking, false = missing, true = present
-  
+
   // Track specific checklist items from Screenshot 2026-06-08 013036.png
   const [currentStep, setCurrentStep] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
 
   const workflowSteps = [
-    { label: "READING RESUME", subtext: "Parsing files into target index arrays" },
-    { label: "EXTRACTING SKILLS", subtext: "Isolating verified domain tools and profiles" },
-    { label: "MAPPING EXPERIENCE", subtext: "Analyzing work history and seniority level" },
-    { label: "QUERYING WORKSPACES", subtext: "Running deep natural-language vectors" },
-    { label: "FILTERING RESULTS", subtext: "Applying target coordinates and boundaries" },
-    { label: "RANKING MATCHES", subtext: "Evaluating semantic model fit score weights" }
+    {
+      label: "READING RESUME",
+      subtext: "Parsing files into target index arrays",
+    },
+    {
+      label: "EXTRACTING SKILLS",
+      subtext: "Isolating verified domain tools and profiles",
+    },
+    {
+      label: "MAPPING EXPERIENCE",
+      subtext: "Analyzing work history and seniority level",
+    },
+    {
+      label: "QUERYING WORKSPACES",
+      subtext: "Running deep natural-language vectors",
+    },
+    {
+      label: "FILTERING RESULTS",
+      subtext: "Applying target coordinates and boundaries",
+    },
+    {
+      label: "RANKING MATCHES",
+      subtext: "Evaluating semantic model fit score weights",
+    },
   ];
 
   // Proactively check CV status on initialization before searching
@@ -35,12 +71,14 @@ function JobsSearchContent() {
       try {
         const response = await api.get<{ status: string }>("/cv/status");
         const cvStatus = response.data.status.toLowerCase();
-        
+
         if (cvStatus === "done") {
           setHasCv(true);
         } else {
           setHasCv(false);
-          setError("No CV on file. Upload your CV first so fit scoring can run.");
+          setError(
+            "No CV on file. Upload your CV first so fit scoring can run.",
+          );
         }
       } catch (err) {
         // If 404 error code drops or fails, we infer no CV exists
@@ -80,12 +118,14 @@ function JobsSearchContent() {
     };
   }, [isSearching]);
 
-  const processedJobs = [...results].sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
+  const processedJobs = [...results].sort(
+    (a, b) => (b.fit_score || 0) - (a.fit_score || 0),
+  );
 
   async function handleSearch(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!query.trim()) return;
-    
+
     // Block searching if we already determined the CV is missing
     if (hasCv === false) {
       setError("No CV on file. Upload your CV first so fit scoring can run.");
@@ -96,16 +136,18 @@ function JobsSearchContent() {
     setSearching(true);
 
     try {
-      const r = await api.post<{ results: JobCard[]; source: string; total: number }>(
-        "/jobs/search",
-        { query }
-      );
+      const r = await api.post<{
+        results: JobCard[];
+        source: string;
+        total: number;
+      }>("/jobs/search", { query });
       setResults(r.data.results, r.data.source, r.data.total);
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      
+      const status = (err as { response?: { status?: number } })?.response
+        ?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+
       if (status === 404) {
         setHasCv(false);
         setError("No CV on file. Upload your CV first so fit scoring can run.");
@@ -119,7 +161,6 @@ function JobsSearchContent() {
 
   return (
     <div className="w-full min-h-[calc(100vh-64px)] bg-gradient-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
-
       {/* GRID CANVAS LAYER */}
       <div
         className="absolute inset-0 pointer-events-none z-0 opacity-[0.07]"
@@ -128,22 +169,21 @@ function JobsSearchContent() {
             linear-gradient(to right, #1A1A1A 1px, transparent 1px),
             linear-gradient(to bottom, #1A1A1A 1px, transparent 1px)
           `,
-          backgroundSize: '40px 40px'
+          backgroundSize: "40px 40px",
         }}
       />
 
       <div className="relative z-10 mx-auto max-w-5xl animate-in fade-in duration-200 text-left">
-
         {/* MAIN WORKSPACE SHEET */}
         <div className="space-y-8 rounded-none border-2 border-black bg-white p-6 shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:p-10">
-
           {/* HEADER SECTION */}
           <div className="flex flex-col gap-1 pb-6 border-b-2 border-black">
             <h1 className="font-serif text-3xl md:text-4xl font-black tracking-tight text-neutral-900">
               Job Hunter Agent
             </h1>
             <p className="font-mono text-xs text-neutral-500 uppercase tracking-wider">
-              Search and evaluate roles using deep semantic intent matching against your CV.
+              Search and evaluate roles using deep semantic intent matching
+              against your CV.
             </p>
           </div>
 
@@ -153,8 +193,12 @@ function JobsSearchContent() {
               <div className="flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
                 <div className="space-y-0.5">
-                  <p className="font-mono text-xs font-black uppercase text-neutral-900">Missing CV</p>
-                  <p className="font-sans text-xs text-neutral-600">Upload a resume before searching for jobs.</p>
+                  <p className="font-mono text-xs font-black uppercase text-neutral-900">
+                    Missing CV
+                  </p>
+                  <p className="font-sans text-xs text-neutral-600">
+                    Upload a resume before searching for jobs.
+                  </p>
                 </div>
               </div>
               <Link href="/cv/upload">
@@ -167,14 +211,21 @@ function JobsSearchContent() {
           )}
 
           {/* --- SEARCH BOX --- */}
-          <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3 rounded-none border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_rgba(0,0,0,1)]">
+          <form
+            onSubmit={handleSearch}
+            className="flex flex-col lg:flex-row gap-3 rounded-none border-2 border-black bg-white p-2.5 shadow-[3px_3px_0px_rgba(0,0,0,1)]"
+          >
             <div className="flex-1 flex items-center gap-3 px-2 py-1 bg-neutral-50/50 border border-transparent focus-within:border-black transition-colors">
               <Search className="h-5 w-5 text-black shrink-0" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={hasCv === false}
-                placeholder={hasCv === false ? "Please upload your CV first..." : "e.g., Find me ML internships in Dhaka open this month..."}
+                placeholder={
+                  hasCv === false
+                    ? "Please upload your CV first..."
+                    : "e.g., Find me ML internships in Dhaka open this month..."
+                }
                 className="flex-1 border-0 h-10 rounded-none bg-transparent font-sans text-base p-0 text-black focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-neutral-400 disabled:cursor-not-allowed"
               />
             </div>
@@ -198,25 +249,30 @@ function JobsSearchContent() {
             {isSearching ? (
               /* RESTORED SPLIT SCREEN CHEKLIST LOADER PANEL FROM SCREENSHOT */
               <div className="w-full border-2 border-black bg-white overflow-hidden shadow-[4px_4px_0px_rgba(0,0,0,1)] animate-in fade-in duration-200">
-                
                 {/* Loader Header Ticker Banner */}
                 <div className="bg-black text-white px-4 py-2.5 flex justify-between items-center font-mono text-[10px] tracking-widest uppercase font-black">
                   <span>Live Search in Progress</span>
-                  <span className="text-neutral-400">Step {currentStep + 1} of {workflowSteps.length}</span>
+                  <span className="text-neutral-400">
+                    Step {currentStep + 1} of {workflowSteps.length}
+                  </span>
                 </div>
 
                 {/* Progress Bar Line */}
                 <div className="w-full bg-neutral-200 h-1.5 border-b border-black">
-                  <div 
+                  <div
                     className="bg-black h-full transition-all duration-300"
-                    style={{ width: `${((currentStep + 1) / workflowSteps.length) * 100}%` }}
+                    style={{
+                      width: `${((currentStep + 1) / workflowSteps.length) * 100}%`,
+                    }}
                   />
                 </div>
 
                 <div className="p-6 md:p-8 space-y-6">
                   {/* Current Stage Large Headline readout */}
                   <div className="space-y-1">
-                    <span className="font-mono text-[9px] uppercase font-black tracking-widest text-neutral-400 block">Currently</span>
+                    <span className="font-mono text-[9px] uppercase font-black tracking-widest text-neutral-400 block">
+                      Currently
+                    </span>
                     <h2 className="font-serif text-2xl md:text-3xl font-black text-neutral-900 tracking-tight capitalize">
                       {workflowSteps[currentStep].label.toLowerCase()}
                     </h2>
@@ -232,15 +288,15 @@ function JobsSearchContent() {
                     {workflowSteps.map((step, idx) => {
                       const isCompleted = idx < currentStep;
                       const isActive = idx === currentStep;
-                      
+
                       return (
-                        <div 
+                        <div
                           key={step.label}
                           className={cn(
                             "flex items-center gap-3 py-2 border-b border-neutral-100 transition-all duration-150",
                             isCompleted && "opacity-80",
                             isActive && "border-b-black bg-neutral-50 px-2",
-                            !isActive && !isCompleted && "opacity-25"
+                            !isActive && !isCompleted && "opacity-25",
                           )}
                         >
                           {isCompleted ? (
@@ -252,11 +308,15 @@ function JobsSearchContent() {
                           ) : (
                             <Square className="h-4 w-4 text-neutral-400 shrink-0" />
                           )}
-                          
-                          <span className={cn(
-                            "font-mono text-xs tracking-wider",
-                            isActive ? "font-black text-black" : "font-bold text-neutral-800"
-                          )}>
+
+                          <span
+                            className={cn(
+                              "font-mono text-xs tracking-wider",
+                              isActive
+                                ? "font-black text-black"
+                                : "font-bold text-neutral-800",
+                            )}
+                          >
                             {step.label}
                           </span>
                         </div>
@@ -268,11 +328,12 @@ function JobsSearchContent() {
                   <div className="pt-4 flex items-center gap-6 border-t-2 border-dashed border-neutral-200 font-mono text-[10px] uppercase font-black text-neutral-400">
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block h-2 w-2 rounded-full bg-black animate-ping" />
-                      <span className="text-black">Evaluating matching index clusters</span>
+                      <span className="text-black">
+                        Evaluating matching index clusters
+                      </span>
                     </div>
                     <div>{elapsedTime}s elapsed</div>
                   </div>
-
                 </div>
               </div>
             ) : results.length === 0 ? (
@@ -312,9 +373,11 @@ function JobsSearchContent() {
                           <div
                             className={cn(
                               "h-14 w-14 rounded-none flex flex-col items-center justify-center font-mono font-black text-base border-2 border-black shrink-0 shadow-[2px_2px_0px_rgba(0,0,0,1)]",
-                              (job.fit_score || 0) >= 85 ? "bg-emerald-50 text-emerald-800" :
-                              (job.fit_score || 0) >= 70 ? "bg-amber-50 text-amber-800" :
-                              "bg-rose-50 text-rose-800"
+                              (job.fit_score || 0) >= 80
+                                ? "bg-emerald-50 text-emerald-800"
+                                : (job.fit_score || 0) >= 50
+                                  ? "bg-amber-50 text-amber-800"
+                                  : "bg-rose-50 text-rose-800",
                             )}
                           >
                             <span>{job.fit_score}%</span>
@@ -355,7 +418,6 @@ function JobsSearchContent() {
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>
@@ -364,11 +426,13 @@ function JobsSearchContent() {
 
 export default function JobsPage() {
   return (
-    <Suspense fallback={
-      <div className="w-full min-h-[calc(100vh-64px)] bg-[#FDFBF9] flex items-center justify-center font-mono text-xs font-bold uppercase text-neutral-500">
-        Loading Agent…
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="w-full min-h-[calc(100vh-64px)] bg-[#FDFBF9] flex items-center justify-center font-mono text-xs font-bold uppercase text-neutral-500">
+          Loading Agent…
+        </div>
+      }
+    >
       <JobsSearchContent />
     </Suspense>
   );

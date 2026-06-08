@@ -55,21 +55,24 @@ function JobDetailContent() {
   }
 
   const scoreColor =
-    job.fit_score >= 85
+    job.fit_score >= 80
       ? "bg-emerald-50 text-emerald-900"
-      : job.fit_score >= 70
-      ? "bg-amber-50 text-amber-900"
-      : "bg-rose-50 text-rose-900";
+      : job.fit_score >= 50
+        ? "bg-amber-50 text-amber-900"
+        : "bg-rose-50 text-rose-900";
 
   async function handleGenerateCoverLetter() {
     setIsGenerating(true);
     setGenError(null);
     try {
-      const res = await api.post<{ cover_letter: string }>("/jobs/cover-letter", {
-        role: job!.role,
-        company: job!.company,
-        jd_summary: job!.fit_reasoning,
-      });
+      const res = await api.post<{ cover_letter: string }>(
+        "/jobs/cover-letter",
+        {
+          role: job!.role,
+          company: job!.company,
+          jd_summary: job!.fit_reasoning,
+        },
+      );
       setEditableLetter(res.data.cover_letter);
       setHasGenerated(true);
     } catch {
@@ -84,10 +87,13 @@ function JobDetailContent() {
     setIsRefining(true);
     setRefineError(null);
     try {
-      const res = await api.post<{ cover_letter: string }>("/jobs/cover-letter/refine", {
-        cover_letter: editableLetter,
-        instruction: refineInstruction.trim(),
-      });
+      const res = await api.post<{ cover_letter: string }>(
+        "/jobs/cover-letter/refine",
+        {
+          cover_letter: editableLetter,
+          instruction: refineInstruction.trim(),
+        },
+      );
       setEditableLetter(res.data.cover_letter);
       setRefineInstruction("");
     } catch {
@@ -106,7 +112,6 @@ function JobDetailContent() {
 
   return (
     <div className="w-full min-h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
-
       {/* Grid background */}
       <div
         className="absolute inset-0 pointer-events-none z-0 opacity-[0.07]"
@@ -121,7 +126,6 @@ function JobDetailContent() {
 
       <div className="relative z-10 mx-auto max-w-5xl animate-in fade-in duration-200 text-left">
         <div className="space-y-8 rounded-none border-2 border-black bg-white p-6 shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:p-10">
-
           {/* Back link */}
           <Link
             href="/jobs"
@@ -136,7 +140,7 @@ function JobDetailContent() {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 font-mono text-xs font-black text-neutral-500 uppercase tracking-widest">
                 <Sparkles className="h-4 w-4 text-black" />
-                <span>AI Fit Analysis</span>
+                <span>Job Fit Analysis</span>
               </div>
               <h1 className="font-serif text-3xl md:text-4xl font-black text-neutral-900 leading-tight tracking-tight">
                 {job.role}
@@ -152,7 +156,8 @@ function JobDetailContent() {
                 )}
                 {job.salary_range && (
                   <span className="flex items-center gap-1.5">
-                    <DollarSign className="h-4 w-4 text-black" /> {job.salary_range}
+                    <DollarSign className="h-4 w-4 text-black" />{" "}
+                    {job.salary_range}
                   </span>
                 )}
               </div>
@@ -161,7 +166,7 @@ function JobDetailContent() {
             <div
               className={cn(
                 "h-16 w-16 rounded-none flex flex-col items-center justify-center font-mono font-black border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] shrink-0 self-start text-lg",
-                scoreColor
+                scoreColor,
               )}
             >
               <span className="leading-none">{job.fit_score}%</span>
@@ -186,7 +191,9 @@ function JobDetailContent() {
             <div className="space-y-3 rounded-none border-2 border-rose-400 bg-rose-50 p-5 md:p-6 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
               <div className="flex items-center gap-2 font-mono text-[10px] font-black text-rose-700 uppercase tracking-wider">
                 <AlertTriangle className="h-3.5 w-3.5 stroke-[3px]" />
-                <span>Skill Gaps — {job.missing_skills.length} missing from your CV</span>
+                <span>
+                  Skill Gaps — {job.missing_skills.length} missing from your CV
+                </span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {job.missing_skills.map((skill) => (
@@ -199,7 +206,8 @@ function JobDetailContent() {
                 ))}
               </div>
               <p className="font-mono text-[10px] text-rose-600 font-bold mt-1">
-                These skills appear in the job description but were not found in your uploaded CV.
+                These skills appear in the job description but were not found in
+                your uploaded CV.
               </p>
             </div>
           )}
@@ -208,7 +216,9 @@ function JobDetailContent() {
             <div className="space-y-1.5 rounded-none border-2 border-emerald-400 bg-emerald-50 p-5 shadow-[2px_2px_0px_rgba(0,0,0,1)]">
               <div className="flex items-center gap-2 font-mono text-[10px] font-black text-emerald-700 uppercase tracking-wider">
                 <Sparkles className="h-3.5 w-3.5 stroke-[3px]" />
-                <span>No skill gaps detected — your CV covers all required skills</span>
+                <span>
+                  No skill gaps detected — your CV covers all required skills
+                </span>
               </div>
             </div>
           )}
@@ -229,7 +239,7 @@ function JobDetailContent() {
               <Button
                 onClick={handleGenerateCoverLetter}
                 disabled={isGenerating}
-                className="rounded-none border-2 border-black bg-black text-white hover:bg-neutral-800 font-mono text-xs font-black uppercase tracking-wider px-4 h-10 shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2"
+                className="rounded-none border-2 border-teal-600 bg-teal-600 text-white hover:bg-teal-700 hover:border-teal-700 font-mono text-xs font-black uppercase tracking-wider px-4 h-10 shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2"
               >
                 {isGenerating ? (
                   <>
@@ -246,18 +256,34 @@ function JobDetailContent() {
             </div>
 
             {genError && (
-              <p className="font-mono text-xs text-rose-600 font-bold">{genError}</p>
+              <p className="font-mono text-xs text-rose-600 font-bold">
+                {genError}
+              </p>
             )}
 
             {editableLetter !== null && (
               <div className="space-y-4">
-                {/* Editable textarea */}
-                <textarea
-                  value={editableLetter}
-                  onChange={(e) => setEditableLetter(e.target.value)}
-                  rows={14}
-                  className="w-full rounded-none border-2 border-black bg-neutral-50 p-4 font-sans text-sm leading-relaxed text-neutral-800 resize-y focus:outline-none focus:ring-0 focus:border-black"
-                />
+                {/* Editable textarea — overlaid with a loading state while refinement runs */}
+                <div className="relative">
+                  <textarea
+                    value={editableLetter}
+                    onChange={(e) => setEditableLetter(e.target.value)}
+                    rows={14}
+                    disabled={isRefining}
+                    className={cn(
+                      "w-full rounded-none border-2 border-black bg-neutral-50 p-4 font-sans text-sm leading-relaxed text-neutral-800 resize-y focus:outline-none focus:ring-0 focus:border-black transition-opacity duration-150",
+                      isRefining && "opacity-40 cursor-wait",
+                    )}
+                  />
+                  {isRefining && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+                      <Loader2 className="h-6 w-6 animate-spin text-black" />
+                      <span className="font-mono text-[10px] font-black uppercase tracking-widest text-black">
+                        Updating…
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-3">
                   <Button
@@ -280,24 +306,27 @@ function JobDetailContent() {
                 </div>
 
                 {/* AI refinement chat */}
-                <div className="space-y-2 border-t-2 border-dashed border-neutral-200 pt-4">
-                  <div className="font-mono text-[10px] font-black text-neutral-400 uppercase tracking-wider">
-                    Ask AI to modify
+                <div className="space-y-3 rounded-none border-2 border-teal-600 bg-teal-50 p-4 shadow-[2px_2px_0px_rgba(13,148,136,0.4)]">
+                  <div className="flex items-center gap-2 font-mono text-[10px] font-black text-teal-700 uppercase tracking-wider">
+                    <Sparkles className="h-3.5 w-3.5 stroke-[3px]" />
+                    <span>Ask AI to modify</span>
                   </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={refineInstruction}
                       onChange={(e) => setRefineInstruction(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && !isRefining && handleRefine()}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && !isRefining && handleRefine()
+                      }
                       placeholder='e.g. "make it shorter" or "open with my internship at X"'
                       disabled={isRefining}
-                      className="flex-1 rounded-none border-2 border-black bg-white px-3 py-2 font-mono text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-0 disabled:opacity-50"
+                      className="flex-1 rounded-none border-2 border-teal-300 bg-white px-3 py-2 font-mono text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-0 focus:border-teal-600 disabled:opacity-50"
                     />
                     <Button
                       onClick={handleRefine}
                       disabled={isRefining || !refineInstruction.trim()}
-                      className="rounded-none border-2 border-black bg-black text-white hover:bg-neutral-800 font-mono text-xs font-black uppercase tracking-wider px-4 h-auto shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50"
+                      className="rounded-none border-2 border-teal-600 bg-teal-600 text-white hover:bg-teal-700 hover:border-teal-700 font-mono text-xs font-black uppercase tracking-wider px-4 h-auto shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50"
                     >
                       {isRefining ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -307,7 +336,9 @@ function JobDetailContent() {
                     </Button>
                   </div>
                   {refineError && (
-                    <p className="font-mono text-xs text-rose-600 font-bold">{refineError}</p>
+                    <p className="font-mono text-xs text-rose-600 font-bold">
+                      {refineError}
+                    </p>
                   )}
                 </div>
               </div>
@@ -321,7 +352,9 @@ function JobDetailContent() {
                 <Calendar className="h-4 w-4 text-black" />
                 <span>
                   Deadline:{" "}
-                  <strong className="text-neutral-900 font-black">{job.deadline}</strong>
+                  <strong className="text-neutral-900 font-black">
+                    {job.deadline}
+                  </strong>
                 </span>
               </div>
             )}
@@ -331,14 +364,13 @@ function JobDetailContent() {
               rel="noopener noreferrer"
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "w-full sm:w-auto h-12 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+                "w-full sm:w-auto h-12 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]",
               )}
             >
               <span>Apply Now</span>
               <ArrowUpRight className="h-4 w-4 shrink-0 stroke-[2.5px]" />
             </a>
           </div>
-
         </div>
       </div>
     </div>

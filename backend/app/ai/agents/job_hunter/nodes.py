@@ -133,12 +133,16 @@ async def score_node(state: JobHunterState) -> dict:
                 "fit_reasoning": result.explanation,
                 "missing_skills": result.missing_skills,
             }
-        except Exception:
-            # One job failing scoring should never kill the whole batch
+        except Exception as exc:
+            logger.warning(
+                f"score_one failed for '{job.get('role')}' at '{job.get('company')}': "
+                f"{type(exc).__name__}: {exc}"
+            )
             return None
 
     results = await asyncio.gather(*[score_one(job) for job in raw_jobs])
     job_cards = [r for r in results if r is not None]
+    logger.info(f"✅ Scored {len(job_cards)}/{len(raw_jobs)} jobs successfully")
     return {"job_cards": job_cards}
 
 

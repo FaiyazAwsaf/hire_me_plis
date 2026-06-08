@@ -1,8 +1,11 @@
 import asyncio
+import logging
 import re
 from dataclasses import dataclass
 
 from app.ai.embeddings.embed import embed_text
+
+logger = logging.getLogger(__name__)
 from app.ai.llm.generate import generate
 from app.ai.llm.prompts.scoring import fit_score_explanation_prompt
 from app.ai.rag.context import build_context
@@ -100,7 +103,7 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
 
     jd_words = _tokens(jd_skills)                       # prompt guarantees canonical full forms
     cv_words = _tokens(cv_all_texts, normalize=True)    # expand abbreviations, cover all sections
-    skill_match = min(100, round(len(jd_words & cv_words) / len(jd_words) * 100)) if jd_words else 0
+    skill_match = min(100, round(len(jd_words & cv_words) / len(jd_words) * 100) + 10) if jd_words else 0
 
     # Missing skills — JD skill names where none of their tokens appear anywhere in the CV
     missing_skills = [
@@ -114,7 +117,7 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
     ]
 
     # Semantic match — average of top-5 chunks across ALL sections (experience + projects + skills)
-    # +7 bias corrects for OpenAI embeddings' natural cosine ceiling (~0.85 for well-matched docs)
+    # +10 bias corrects for OpenAI embeddings' natural cosine ceiling (~0.85 for well-matched docs)
     if semantic_results:
         semantic_avg = sum(r.score for r in semantic_results) / len(semantic_results)
         semantic_match = min(100, round(semantic_avg * 100) + 10)
@@ -131,21 +134,31 @@ async def score(jd_text: str, user_id: str) -> FitScoreResult:
 
     total = round(0.3 * skill_match + 0.5 * semantic_match + 0.2 * experience_match)
 
-    # Claude Sonnet writes the explanation grounded in the top-5 most relevant CV chunks
+    # Claude Sonnet writes the explanation grounded in the top-5 most relevant CV chunks.
+    # Fallback to a computed summary if the LLM call fails — scoring must never drop a job
+    # just because the explanation generator hit a transient API error.
     cv_context = build_context(semantic_results)
-    explanation = await generate(
-        prompt=fit_score_explanation_prompt(
-            score=total,
-            breakdown={
-                "skill_match": skill_match,
-                "semantic_match": semantic_match,
-                "experience_match": experience_match,
-            },
-            cv_context=cv_context,
-            jd_summary=jd_text[:1000],  # cap to keep the prompt token-efficient
-        ),
-        model=HEAVY_MODEL,
-    )
+    try:
+        explanation = await generate(
+            prompt=fit_score_explanation_prompt(
+                score=total,
+                breakdown={
+                    "skill_match": skill_match,
+                    "semantic_match": semantic_match,
+                    "experience_match": experience_match,
+                },
+                cv_context=cv_context,
+                jd_summary=jd_text[:1000],  # cap to keep the prompt token-efficient
+            ),
+            model=HEAVY_MODEL,
+        )
+    except Exception as exc:
+        logger.warning(f"Explanation generation failed ({type(exc).__name__}: {exc})")
+        missing_str = f" Missing: {', '.join(missing_skills[:3])}." if missing_skills else ""
+        explanation = (
+            f"Fit score: {total}/100 — skill match {skill_match}%, "
+            f"semantic match {semantic_match}%, experience match {experience_match}%.{missing_str}"
+        )
 
     return FitScoreResult(
         score=total,
