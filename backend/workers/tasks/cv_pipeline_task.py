@@ -1,5 +1,5 @@
 import uuid as _uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -139,10 +139,27 @@ async def process_cv(
             cv.error_msg = error_msg
             await db.commit()
 
+        uuid_user_id = _uuid.UUID(user_id)
+
+        async def save_profile(profile_dict: dict) -> None:
+            """Upsert the extracted profile into cv_profiles."""
+            now = datetime.now(UTC)
+            result = await db.execute(
+                select(CVProfileORM).where(CVProfileORM.user_id == uuid_user_id)
+            )
+            row = result.scalar_one_or_none()
+            if row is None:
+                db.add(CVProfileORM(user_id=uuid_user_id, profile=profile_dict, updated_at=now))
+            else:
+                row.profile = profile_dict
+                row.updated_at = now
+            await db.commit()
+
         await run_cv_pipeline(
             user_id=user_id,
             cv_version_id=cv_version_id,
             r2_key=r2_key,
             file_type=file_type,
             update_status_fn=update_status,
+            save_profile_fn=save_profile,
         )

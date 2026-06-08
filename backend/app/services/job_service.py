@@ -7,13 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.agents.fit_scorer.scorer import score
 from app.ai.agents.job_hunter.graph import agent
+from app.ai.llm.generate import generate
+from app.ai.llm.prompts.cover_letter import cover_letter_prompt, refine_cover_letter_prompt
+from app.ai.rag.context import build_context
+from app.ai.rag.retriever import retrieve
+from app.core.llm_client import HEAVY_MODEL
 from app.models.cv import CVStatus, CVVersion
 from app.schemas.jobs import (
+    CoverLetterResponse,
     FitScoreResponse,
     JobCard,
     JobSearchResponse,
     ScoreBreakdown,
 )
+
 
 
 async def fit_score_job(
@@ -76,6 +83,7 @@ async def search_jobs(
             source_platform=card.get("source_platform"),
             fit_score=card["fit_score"],
             fit_reasoning=card["fit_reasoning"],
+            missing_skills=card.get("missing_skills", []),
         )
         for card in state.get("job_cards", [])
     ]
@@ -106,6 +114,55 @@ async def _require_cv(user_id: uuid.UUID, db: AsyncSession) -> None:
             status_code=404,
             detail="No processed CV on file. Upload and process a CV first.",
         )
+
+
+async def generate_cover_letter(
+    role: str,
+    company: str,
+    jd_summary: str,
+    user_id: uuid.UUID,
+    db: AsyncSession,
+) -> CoverLetterResponse:
+    """Generate a personalized cover letter grounded in the user's CV via RAG.
+
+    Uses the job's role/company/fit_reasoning as the JD context (the full JD text is
+    not stored in the job card) and retrieves the user's most relevant CV chunks to
+    ground every claim in their actual experience.
+    """
+    await _require_cv(user_id, db)
+
+    # RAG: retrieve the most relevant CV chunks for this specific role
+    query = f"{role} at {company}: {jd_summary}"
+    chunks = await retrieve(query, str(user_id), top_k=6)
+    cv_context = build_context(chunks)
+
+    letter = await generate(
+        prompt=cover_letter_prompt(role, company, jd_summary, cv_context),
+        model=HEAVY_MODEL,
+    )
+
+    return CoverLetterResponse(cover_letter=letter)
+
+
+async def refine_cover_letter(
+    cover_letter: str,
+    instruction: str,
+    user_id: uuid.UUID,
+    db: AsyncSession,
+) -> CoverLetterResponse:
+    """Apply a targeted edit to an existing cover letter.
+
+    No RAG re-retrieval — the letter already contains CV context from the initial
+    generation; refinements are almost always stylistic or structural changes.
+    """
+    await _require_cv(user_id, db)
+
+    refined = await generate(
+        prompt=refine_cover_letter_prompt(cover_letter, instruction),
+        model=HEAVY_MODEL,
+    )
+
+    return CoverLetterResponse(cover_letter=refined)
 
 
 def _parse_date(value: str | None) -> date | None:

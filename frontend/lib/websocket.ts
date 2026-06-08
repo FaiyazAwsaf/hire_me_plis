@@ -16,14 +16,25 @@ export interface ChatWebSocket {
  */
 export function createChatSocket(
   onMessage: (msg: WsMessage) => void,
-  onError?: (event: Event) => void,
-  onClose?: () => void
+  onOpen?: () => void,
+  onError?: (event: Event, reason?: string) => void,
+  onClose?: () => void,
 ): ChatWebSocket {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
 
-  const url = `${WS_BASE}/chat/ws${token ? `?token=${token}` : ""}`;
+  if (!token) {
+    // Defer so caller can wire up handlers first
+    setTimeout(() => onError?.(new Event("error"), "no_token"), 0);
+    return { send: () => {}, close: () => {} };
+  }
+
+  const url = `${WS_BASE}/chat/ws?token=${token}`;
   const ws = new WebSocket(url);
+  // Track intentional closes (e.g. React Strict Mode cleanup) to suppress false errors
+  let intentionallyClosed = false;
+
+  ws.onopen = () => onOpen?.();
 
   ws.onmessage = (event) => {
     try {
@@ -34,8 +45,25 @@ export function createChatSocket(
     }
   };
 
-  ws.onerror = (e) => onError?.(e);
-  ws.onclose = () => onClose?.();
+  // onerror always fires before onclose and never carries a close code — ignore it here
+  ws.onerror = () => {};
+
+  // onclose is the single source of truth for why the socket ended
+  ws.onclose = (e) => {
+    if (intentionallyClosed) {
+      onClose?.();
+      return;
+    }
+    if (e.code === 4001) {
+      onError?.(new Event("error"), "auth_failed");
+    } else if (e.code === 1000 || e.code === 1001) {
+      // Normal / going-away close
+      onClose?.();
+    } else {
+      // 1006 (abnormal) or anything else — real connection failure
+      onError?.(new Event("error"));
+    }
+  };
 
   return {
     send(message: string, sessionId: string) {
@@ -44,6 +72,7 @@ export function createChatSocket(
       }
     },
     close() {
+      intentionallyClosed = true;
       ws.close();
     },
   };

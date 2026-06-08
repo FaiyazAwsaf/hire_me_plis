@@ -6,6 +6,7 @@ from app.ai.cv_pipeline.chunker import chunk_sections
 from app.ai.cv_pipeline.embedder import embed_and_upsert
 from app.ai.cv_pipeline.meta_extractor import extract_cv_meta
 from app.ai.cv_pipeline.parser import parse_file
+from app.ai.cv_pipeline.profile_extractor import extract_profile
 from app.ai.vector_store.delete import delete_by_user
 
 
@@ -21,18 +22,24 @@ async def run_cv_pipeline(
     cv_version_id: str,
     r2_key: str,
     file_type: str,
-    update_status_fn: Callable,  # async (cv_version_id, status, error_msg=None) → None
+    update_status_fn: Callable,   # async (cv_version_id, status, error_msg=None) → None
+    save_profile_fn: Callable,    # async (profile_dict: dict) → None
 ) -> PipelineResult:
     """Orchestrate the full CV ingestion pipeline.
 
-    update_status_fn is injected by the ARQ task so this function never
-    touches the database directly — keeping the ai/ layer dependency-free.
+    Callbacks are injected by the ARQ task so this function never touches the
+    database directly — keeping the ai/ layer dependency-free.
     """
     try:
         await update_status_fn(cv_version_id, "processing")
 
         blocks = await parse_file(r2_key, file_type)
         classified = await classify_sections(blocks)
+
+        # Extract structured profile JSON and persist to cv_profiles
+        profile_dict = await extract_profile(classified)
+        await save_profile_fn(profile_dict)
+
         chunks = chunk_sections(classified)
 
         # Extract role + experience metadata once; stamped onto every Qdrant point below
