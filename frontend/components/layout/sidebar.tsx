@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,13 +21,14 @@ const NAV_ITEMS = [
   { href: "/jobs",      label: "Job Hunter", icon: Briefcase },
   { href: "/chat",      label: "AI Assistant", icon: MessageSquare },
   { href: "/tracker",   label: "Tracker",     icon: KanbanSquare },
-  { 
-    href: "/cv/upload",       
-    label: "Resume",  
+  {
+    href: "/cv",
+    label: "Resume",
     icon: FileText,
-    triggerKey: "/cv", 
+    triggerKey: "/cv",
     children: [
-      { href: "/cv/upload", label: "Resume Uploader" },
+      { href: "/cv", label: "My Profile" },
+      { href: "/cv/upload", label: "Upload New CV" },
       { href: "/cv/builder", label: "Resume Builder" },
     ]
   },
@@ -45,7 +46,7 @@ export function Sidebar() {
 
   const isRouteActive = (href: string) => {
     if (href === "/dashboard") return pathname === href;
-    return pathname.startsWith(href) || (href === "/cv/upload" && pathname.startsWith("/cv"));
+    return pathname.startsWith(href);
   };
 
   const toggleExpanded = (key: string) => {

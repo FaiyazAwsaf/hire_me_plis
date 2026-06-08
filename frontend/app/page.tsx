@@ -103,7 +103,7 @@ export default function Home() {
               className="font-serif text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.05] text-neutral-900"
               variants={fadeInUpVariants}
             >
-              Your Agentic <span className="italic font-normal text-neutral-900">Career Co-pilot</span>
+              Your Agentic <span className="italic font-normal text-teal-600">Career Co-pilot</span>
             </motion.h1>
             
             <motion.p 

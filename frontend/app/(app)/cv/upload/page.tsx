@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import {
   ArrowRight,
@@ -63,6 +64,7 @@ const PROCESS_STEPS = [
 ];
 
 export default function UploadPage() {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -159,13 +161,13 @@ export default function UploadPage() {
         stopTimer();
         setStatusText("CV embedded and ready for matching.");
         setShowSuccessBanner(true);
-        window.setTimeout(() => setShowSuccessBanner(false), 5000);
         notify({
           title: "Resume ready",
-          description:
-            "Your CV has been processed. Click 'Search Jobs' to find matching positions.",
+          description: "Your CV has been processed. Redirecting to your profile…",
           tone: "success",
         });
+        // Redirect to profile view after a short delay so user sees completion
+        window.setTimeout(() => router.push("/cv"), 2000);
         return;
       }
 

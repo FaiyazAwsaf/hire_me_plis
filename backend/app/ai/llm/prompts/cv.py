@@ -9,6 +9,72 @@ EXPERIENCE TEXT:
 Respond ONLY with valid JSON in this exact format: {{"role_title": "...", "experience_years": N}}"""
 
 
+def profile_extraction_prompt(classified_text: str) -> str:
+    """Prompt for Gemini Flash to extract a full structured profile from classified CV text."""
+    return f"""You are a CV parser. Extract structured data from the resume text below.
+
+Return ONLY valid JSON with this exact shape (no extra fields, no comments):
+{{
+  "personal": {{
+    "name": "string",
+    "email": "string",
+    "phone": "string or null",
+    "location": "string or null",
+    "linkedin": "string or null",
+    "github": "string or null",
+    "summary": "string or null"
+  }},
+  "experience": [
+    {{
+      "role": "string",
+      "company": "string",
+      "start_date": "YYYY-MM",
+      "end_date": "YYYY-MM or null",
+      "current": false,
+      "description": "string"
+    }}
+  ],
+  "education": [
+    {{
+      "degree": "string",
+      "institution": "string",
+      "start_date": "YYYY-MM",
+      "end_date": "YYYY-MM or null",
+      "grade": "string or null"
+    }}
+  ],
+  "skills": ["string"],
+  "projects": [
+    {{
+      "name": "string",
+      "description": "string",
+      "url": "string or null",
+      "tech_stack": ["string"]
+    }}
+  ],
+  "certifications": [
+    {{
+      "name": "string",
+      "issuer": "string",
+      "date": "YYYY-MM",
+      "url": "string or null"
+    }}
+  ]
+}}
+
+Rules:
+- Missing optional fields → null (never empty string)
+- Dates MUST be YYYY-MM (if only a year is given, use YYYY-01)
+- "current" is true only when the role has no end date and is clearly ongoing
+- Skills must be a flat list of individual skill names
+- Do NOT include "id" fields — they will be added separately
+
+RESUME TEXT:
+{classified_text}
+
+Respond ONLY with valid JSON. No markdown fences, no explanation."""
+
+
 def section_classifier_prompt(text: str) -> str:
     return f"""You are a CV/resume parser. Given the following text extracted from a CV, \
 classify each meaningful block into one of these sections:

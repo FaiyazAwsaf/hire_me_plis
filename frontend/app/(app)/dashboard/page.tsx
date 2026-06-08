@@ -24,27 +24,29 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { useDashboardStore } from "@/store/dashboard";
-import type { CalendarEvent } from "@/store/tracker";
+import type { CalendarEvent, Goal } from "@/store/tracker";
 
-const JUNE_START_DOW = 0;
-const JUNE_DAYS = 30;
 const WEEK_HEADERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
 export default function DashboardPage() {
   const { stats, nudges, setStats, setNudges, markNudgeRead } =
     useDashboardStore();
   const [calEvents, setCalEvents] = useState<CalendarEvent[]>([]);
+  const [calGoals, setCalGoals] = useState<Goal[]>([]);
 
   // ── CV STATE INTEGRATION ──
   const [hasCv, setHasCv] = useState<boolean | null>(null);
 
   const today = new Date();
-  const isJune2026 = today.getFullYear() === 2026 && today.getMonth() === 5;
-  const todayDay = isJune2026 ? today.getDate() : null;
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-indexed
+  const todayDay = today.getDate();
+  const startDow = new Date(year, month, 1).getDay(); // weekday of the 1st
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const cells: (number | null)[] = [
-    ...Array<null>(JUNE_START_DOW).fill(null),
-    ...Array.from({ length: JUNE_DAYS }, (_, i) => i + 1),
+    ...Array<null>(startDow).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
 
   useEffect(() => {
@@ -64,11 +66,19 @@ export default function DashboardPage() {
       .get<{ nudges: typeof nudges; unread_count: number }>("/nudges")
       .then((r) => setNudges(r.data.nudges, r.data.unread_count))
       .catch(console.error);
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, "0");
+    const lastDay = new Date(y, t.getMonth() + 1, 0).getDate();
     api
       .get<{ events: CalendarEvent[] }>(
-        "/calendar/events?start=2026-06-01&end=2026-06-30",
+        `/calendar/events?start=${y}-${m}-01&end=${y}-${m}-${lastDay}`,
       )
       .then((r) => setCalEvents(r.data.events))
+      .catch(console.error);
+    api
+      .get<{ goals: Goal[] }>("/goals")
+      .then((r) => setCalGoals(r.data.goals))
       .catch(console.error);
   }, [setStats, setNudges]);
 
@@ -76,32 +86,6 @@ export default function DashboardPage() {
     markNudgeRead(nudgeId);
     await api.patch(`/nudges/${nudgeId}/read`).catch(console.error);
   }
-
-  const getEventStyles = (category: string) => {
-    switch (category?.toLowerCase()) {
-      case "learning":
-      case "dsa":
-        return {
-          cell: "border-black bg-[#FFF9C4] text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]",
-          dot: "bg-amber-600",
-          text: "text-amber-900",
-        };
-      case "cv":
-      case "resume":
-      case "application":
-        return {
-          cell: "border-black bg-[#E1BEE7] text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]",
-          dot: "bg-purple-700",
-          text: "text-purple-900",
-        };
-      default:
-        return {
-          cell: "border-black bg-[#E3F2FD] text-black shadow-[1px_1px_0px_rgba(0,0,0,1)]",
-          dot: "bg-blue-600",
-          text: "text-blue-900",
-        };
-    }
-  };
 
   return (
     <div className="w-full min-h-[calc(100vh-64px)] bg-linear-to-r from-[#EBF0EC] via-[#FDFBF9] to-[#F9F3EE] text-[#1A1A1A] antialiased relative p-6 md:p-10">
@@ -313,7 +297,10 @@ export default function DashboardPage() {
                           Calendar & Agenda
                         </CardTitle>
                         <span className="rounded-none border-2 border-black bg-neutral-900 px-1.5 py-0.5 font-mono text-[9px] font-black text-white uppercase tracking-wider">
-                          June 2026
+                          {today.toLocaleString("default", {
+                            month: "long",
+                            year: "numeric",
+                          })}
                         </span>
                       </div>
                       <CardDescription className="font-sans text-xs text-neutral-500">
@@ -347,14 +334,24 @@ export default function DashboardPage() {
                         );
                       }
 
-                      const dayEvents = calEvents.filter(
-                        (e) => new Date(e.start_dt).getDate() === day,
-                      );
+                      const dayEvents = calEvents.filter((e) => {
+                        const d = new Date(e.start_dt);
+                        return (
+                          d.getFullYear() === year &&
+                          d.getMonth() === month &&
+                          d.getDate() === day
+                        );
+                      });
+                      const dayGoals = calGoals.filter((g) => {
+                        const d = new Date(g.target_date);
+                        return (
+                          d.getFullYear() === year &&
+                          d.getMonth() === month &&
+                          d.getDate() === day
+                        );
+                      });
                       const hasEvents = dayEvents.length > 0;
-                      const mainEvent = dayEvents[0];
-                      const theme = hasEvents
-                        ? getEventStyles("default")
-                        : null;
+                      const hasGoals = dayGoals.length > 0;
                       const isToday = todayDay === day;
 
                       return (
@@ -362,7 +359,12 @@ export default function DashboardPage() {
                           key={day}
                           className={cn(
                             "flex flex-col min-h-8.5 p-0.5 transition-colors relative overflow-hidden",
-                            hasEvents ? theme?.cell : "bg-white",
+                            hasEvents &&
+                              "border-black bg-[#E3F2FD] shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+                            hasGoals &&
+                              !hasEvents &&
+                              "border-black bg-[#FFF9C4] shadow-[1px_1px_0px_rgba(0,0,0,1)]",
+                            !hasEvents && !hasGoals && "bg-white",
                             isToday &&
                               "bg-amber-50 ring-2 ring-amber-500 ring-inset z-10",
                           )}
@@ -378,25 +380,28 @@ export default function DashboardPage() {
                             >
                               {day}
                             </span>
-                            {hasEvents && (
+                            {(hasEvents || hasGoals) && (
                               <span
                                 className={cn(
                                   "h-1 w-1 rounded-full block shrink-0",
-                                  theme?.dot,
+                                  hasGoals ? "bg-amber-600" : "bg-blue-600",
                                 )}
                               />
                             )}
                           </div>
 
+                          {/* Show goal title first (amber), then event title (blue) */}
+                          {hasGoals && (
+                            <div className="mt-0.5 px-0.5 overflow-hidden">
+                              <span className="text-[6.5px] font-black uppercase tracking-tighter truncate block leading-tight text-amber-900">
+                                {dayGoals[0].title}
+                              </span>
+                            </div>
+                          )}
                           {hasEvents && (
                             <div className="mt-0.5 px-0.5 overflow-hidden">
-                              <span
-                                className={cn(
-                                  "text-[6.5px] font-black uppercase tracking-tighter truncate block leading-tight",
-                                  theme?.text,
-                                )}
-                              >
-                                {mainEvent.title}
+                              <span className="text-[6.5px] font-black uppercase tracking-tighter truncate block leading-tight text-blue-900">
+                                {dayEvents[0].title}
                               </span>
                             </div>
                           )}
