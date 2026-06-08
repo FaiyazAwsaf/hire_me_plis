@@ -3,7 +3,9 @@
 An agentic career co-pilot. Uploads your CV once — every job search, fit score, cover letter, and AI response is grounded in your actual profile via RAG. No hallucinated backgrounds.
 
 **System Design Document:** [docs/architecture-diagram.md](docs/architecture-diagram.md)
+
 **Evaluation Suite:** [docs/evaluation-suite.md](docs/evaluation-suite.md)
+
 **API Documentation:** [docs/api_doc.md](docs/api_doc.md)
 
 ---
