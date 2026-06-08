@@ -223,3 +223,105 @@ User sends message via WebSocket
 │  exports/{user_id}/{timestamp}.pdf      — exported PDFs   │
 └───────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 6. Scale Analysis — 10,000 Users
+
+### Assumptions
+
+| Metric                              | Value                      | Reasoning                      |
+| ----------------------------------- | -------------------------- | ------------------------------ |
+| Registered users                    | 10,000                     | Target scale                   |
+| Daily active users (DAU)            | 2,000 (20%)                | Typical SaaS DAU/MAU ratio     |
+| Job searches per active user/month  | 12 (3/week)                | Core use case                  |
+| Chat messages per active user/month | 20 (5/week)                | ~2 sessions of 10 messages     |
+| CV uploads per user/month           | 0.1 (once every 10 months) | One-time action                |
+| Jobs scored per search              | 10                         | Agent returns up to 10 results |
+
+---
+
+### Estimated Cost Per Month at 10,000 Users
+
+#### LLM (via ChatLLM proxy — Claude + Gemini)
+
+| Operation                       | Model         | Tokens (in/out) | Cost/call | Calls/month | Subtotal  |
+| ------------------------------- | ------------- | --------------- | --------- | ----------- | --------- |
+| CV classification               | Gemini Flash  | 800 / 300       | ~$0.00010 | 1,000       | $0.10     |
+| CV profile extraction           | Gemini Flash  | 1,200 / 600     | ~$0.00018 | 1,000       | $0.18     |
+| JD skill extraction (per job)   | Gemini Flash  | 300 / 80        | ~$0.00004 | 240,000     | $9.60     |
+| Fit score explanation (per job) | Claude Sonnet | 800 / 150       | ~$0.00240 | 240,000     | $576      |
+| RAG chat response               | Claude Sonnet | 2,000 / 300     | ~$0.00530 | 40,000      | $212      |
+| AI nudge (daily, per user)      | Gemini Flash  | 200 / 100       | ~$0.00003 | 60,000      | $1.80     |
+| **LLM total**                   |               |                 |           |             | **~$800** |
+
+The Claude Sonnet fit score explanation is the dominant cost — 10 calls per search × 24,000 monthly searches. This is the first thing to optimise if costs need to come down (cache explanations for identical JD hashes, or switch to Gemini Flash for explanations).
+
+#### OpenAI Embeddings (text-embedding-3-small, direct)
+
+| Operation                          | Tokens/call     | Cost/call | Calls/month | Subtotal   |
+| ---------------------------------- | --------------- | --------- | ----------- | ---------- |
+| CV chunk embedding (50 chunks avg) | 50 × 75 = 3,750 | $0.00008  | 1,000       | $0.08      |
+| Job search semantic embed          | 400             | $0.000008 | 24,000      | $0.19      |
+| Chat RAG embed                     | 100             | $0.000002 | 40,000      | $0.08      |
+| **Embeddings total**               |                 |           |             | **~$0.35** |
+
+#### Infrastructure
+
+| Service                               | Tier                | Monthly cost       |
+| ------------------------------------- | ------------------- | ------------------ |
+| Railway (FastAPI + 2 ARQ workers)     | Hobby Pro           | $40                |
+| Supabase PostgreSQL                   | Pro                 | $25 + compute ~$20 |
+| Upstash Redis                         | Pay-per-request     | ~$15               |
+| Qdrant Cloud (500k vectors, 1536-dim) | Free tier → Starter | $0–$70             |
+| Cloudflare R2 (10k CVs × ~1MB)        | Pay-as-you-go       | ~$5                |
+| Vercel (frontend)                     | Pro                 | $20                |
+| **Infrastructure total**              |                     | **~$195**          |
+
+#### Total
+
+| Category                | Monthly cost     |
+| ----------------------- | ---------------- |
+| LLM (Claude + Gemini)   | $800             |
+| Embeddings (OpenAI)     | $1               |
+| Infrastructure          | $195             |
+| **Total**               | **~$996/month**  |
+| **Per registered user** | **~$0.10/month** |
+| **Per active user**     | **~$0.50/month** |
+
+---
+
+### Key Bottlenecks
+
+#### 1. Fit Scoring Latency (highest impact)
+
+Each job search fires up to 10 Claude Sonnet calls for explanations. Currently these run after scoring, but if they are sequential, a single search takes 10–15 seconds. **Fix:** `asyncio.gather()` across all score+explain calls in `score_node` — all 10 run in parallel, wall time drops to ~1.5s.
+
+#### 2. CV Pipeline Worker Throughput
+
+Unstructured.io PDF parsing is CPU-bound and takes 15–30 seconds per CV. A single ARQ worker processes one CV at a time. If 100 users upload simultaneously (realistic during a launch spike), the queue backs up. **Fix:** Scale ARQ workers horizontally on Railway — each worker is stateless and pulls from the same Redis queue. Three workers handle 3× throughput with no code changes.
+
+#### 3. PostgreSQL Connection Pool Exhaustion
+
+At 2,000 DAU making concurrent API calls, the default SQLAlchemy async pool (5 connections) will saturate. asyncpg opens a new connection per overflow, which Supabase's shared Postgres will reject above ~100 concurrent connections. **Fix:** Enable Supabase's PgBouncer connection pooler (transaction mode); set `pool_size=10, max_overflow=20` in the SQLAlchemy engine config.
+
+#### 4. Qdrant Under Concurrent Search Load
+
+At 10k users, the Qdrant collection holds ~500k vectors (10k users × 50 chunks average). A single ANN search over 500k 1536-dim vectors takes ~10–30ms on Qdrant Cloud Starter. At 2,000 concurrent users each triggering a search, the bottleneck is the HTTP connection pool to Qdrant from the API container. **Fix:** Increase `AsyncQdrantClient` connection limits; consider Qdrant's on-premise deployment on Railway with persistent volume if Qdrant Cloud costs rise.
+
+#### 5. LLM Rate Limits at Peak
+
+The ChatLLM proxy enforces per-minute rate limits on Claude Sonnet. A morning job-search rush of 500 concurrent users each triggering 10 Claude calls = 5,000 requests/minute. Most proxy tiers cap at 500–2,000 RPM. **Fix:** Add an asyncio semaphore around LLM calls in the scorer (limit to 50 concurrent calls); excess requests queue locally rather than hitting rate-limit errors.
+
+#### 6. Redis Memory at Scale
+
+Chat sessions (2hr TTL, 20 messages, ~500 bytes each) = ~10KB per active session. At 2,000 concurrent sessions: ~20MB. Upstash free tier caps at 256MB — comfortably handled. At 50,000 DAU this becomes a concern; shard sessions across two Redis instances by hashing `session_id`.
+
+---
+
+### What Doesn't Need to Change at 10,000 Users
+
+- **Qdrant user_id filtering** — already O(1) at the index level via payload index; scales to 10M+ vectors without schema changes
+- **Auth / JWT** — stateless; zero backend load per token verification
+- **Cloudflare R2** — object storage; effectively unlimited at this scale
+- **Frontend on Vercel** — static + edge; handles 10k users trivially
