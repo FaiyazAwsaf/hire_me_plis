@@ -1,5 +1,7 @@
 # Hire Me Plis
 
+> **Please refer to [release/v1.0](https://github.com/FaiyazAwsaf/hire_me_plis/tree/release/v1.0) for the latest stable version of the project and code.**
+
 An agentic career co-pilot. Uploads your CV once — every job search, fit score, cover letter, and AI response is grounded in your actual profile via RAG. No hallucinated backgrounds.
 
 **System Design Document:** [docs/architecture-diagram.md](docs/architecture-diagram.md)
