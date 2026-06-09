@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "cv_chunks"
+    qdrant_api_key: str = ""
 
     # Auth
     secret_key: str
