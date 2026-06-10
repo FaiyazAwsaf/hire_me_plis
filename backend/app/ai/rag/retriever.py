@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -14,6 +15,9 @@ logger = logging.getLogger(__name__)
 _VALID_SECTIONS = frozenset(
     {"experience", "education", "skills", "projects", "certifications", "personal", "summary"}
 )
+
+# Sections fetched for profile_overview queries — ordered for readable context assembly
+_PROFILE_SECTIONS = ("experience", "education", "skills", "projects", "certifications", "personal", "summary")
 
 
 async def _classify_intent(query: str) -> tuple[str, str | None]:
@@ -33,6 +37,8 @@ async def _classify_intent(query: str) -> tuple[str, str | None]:
         section = data.get("section")
         if intent == "enumerate_section" and section in _VALID_SECTIONS:
             return "enumerate_section", section
+        if intent == "profile_overview":
+            return "profile_overview", None
         return "semantic_search", None
     except Exception:
         # LLM failure or invalid JSON — degrade to vector search, never crash
@@ -48,7 +54,8 @@ async def retrieve(
     """Return the most relevant CV chunks for a query.
 
     Routes based on Gemini Flash intent classification:
-    - enumerate_section → scroll_section_texts (full recall, no vector needed)
+    - enumerate_section → scroll one section (full recall, no vector needed)
+    - profile_overview  → scroll all sections in parallel (complete CV as context)
     - semantic_search   → embed + cosine similarity top-k (relevance-ranked)
 
     This is the mock boundary in tests — mock _classify_intent, embed_text, and
@@ -61,6 +68,17 @@ async def retrieve(
         texts = await scroll_section_texts(user_id, section)
         return [
             SearchResult(text=t, section=section, score=1.0, chunk_index=i)
+            for i, t in enumerate(texts)
+        ]
+
+    if intent == "profile_overview":
+        # fan out all section scrolls in parallel — each is an independent Qdrant request
+        section_texts = await asyncio.gather(
+            *[scroll_section_texts(user_id, s) for s in _PROFILE_SECTIONS]
+        )
+        return [
+            SearchResult(text=t, section=s, score=1.0, chunk_index=i)
+            for s, texts in zip(_PROFILE_SECTIONS, section_texts)
             for i, t in enumerate(texts)
         ]
 

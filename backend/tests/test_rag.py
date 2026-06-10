@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.ai.rag.context import build_context
 from app.ai.rag.memory import redis_append, redis_load_history
-from app.ai.rag.retriever import _classify_intent, retrieve
+from app.ai.rag.retriever import _PROFILE_SECTIONS, _classify_intent, retrieve
 from app.ai.vector_store.search import SearchResult
 
 _FAKE_VECTOR = [0.1] * 1536
@@ -206,6 +206,13 @@ class TestClassifyIntent:
         assert intent == "semantic_search"
         assert section is None
 
+    async def test_profile_overview_returns_correct_intent(self):
+        raw = '{"intent": "profile_overview"}'
+        with patch("app.ai.rag.retriever.generate", AsyncMock(return_value=raw)):
+            intent, section = await _classify_intent("which job roles fit my entire profile?")
+        assert intent == "profile_overview"
+        assert section is None
+
 
 # ---------------------------------------------------------------------------
 # retrieve — mock _classify_intent to test routing logic in isolation
@@ -253,6 +260,30 @@ class TestRetriever:
              patch("app.ai.rag.retriever.scroll_section_texts", AsyncMock(return_value=["A", "B", "C"])):
             results = await retrieve("show me my experience", "user-1")
         assert [(r.text, r.chunk_index) for r in results] == [("A", 0), ("B", 1), ("C", 2)]
+
+    async def test_profile_overview_scrolls_all_sections_in_parallel(self):
+        """profile_overview must call scroll_section_texts once per section, never embed_text."""
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("profile_overview", None))), \
+             patch("app.ai.rag.retriever.scroll_section_texts", AsyncMock(return_value=["chunk"])) as mock_scroll, \
+             patch("app.ai.rag.retriever.embed_text", AsyncMock()) as mock_embed:
+            results = await retrieve("which jobs fit my entire profile?", "user-1")
+        assert mock_scroll.call_count == len(_PROFILE_SECTIONS)
+        mock_embed.assert_not_awaited()
+        assert len(results) == len(_PROFILE_SECTIONS)  # one chunk per section
+
+    async def test_profile_overview_preserves_section_labels(self):
+        """Each SearchResult from a profile_overview must carry the correct section name."""
+        section_data = {s: [f"{s} text"] for s in _PROFILE_SECTIONS}
+
+        async def fake_scroll(_, section):
+            return section_data[section]
+
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("profile_overview", None))), \
+             patch("app.ai.rag.retriever.scroll_section_texts", side_effect=fake_scroll):
+            results = await retrieve("career assessment", "user-1")
+
+        result_sections = {r.section for r in results}
+        assert result_sections == set(_PROFILE_SECTIONS)
 
     async def test_returns_empty_list_on_no_results(self):
         """Empty Qdrant results must never raise — propagated as [] to callers."""
