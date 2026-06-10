@@ -5,14 +5,13 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.agents.fit_scorer.scorer import score
-from app.ai.agents.job_hunter.graph import agent
 from app.ai.llm.generate import generate
 from app.ai.llm.prompts.cover_letter import cover_letter_prompt, refine_cover_letter_prompt
 from app.ai.rag.context import build_context
 from app.ai.rag.retriever import retrieve
 from app.core.llm_client import HEAVY_MODEL
 from app.models.cv import CVStatus, CVVersion
+from app.models.user import CHAT_MESSAGE_LIMIT, JOB_SEARCH_LIMIT, User
 from app.schemas.jobs import (
     CoverLetterResponse,
     FitScoreResponse,
@@ -22,17 +21,14 @@ from app.schemas.jobs import (
 )
 
 
-
 async def fit_score_job(
     jd_text: str,
     user_id: uuid.UUID,
     db: AsyncSession,
 ) -> FitScoreResponse:
-    """Guard that a processed CV exists, run the scorer, return the API schema.
+    # lazy import — jobspy/pandas load only on first request, not at startup
+    from app.ai.agents.fit_scorer.scorer import score
 
-    Fails fast with 404 if no CV with status=done exists — scoring against an empty
-    Qdrant collection would silently produce a meaningless 0/0/0 breakdown.
-    """
     await _require_cv(user_id, db)
 
     result = await score(jd_text, str(user_id))
@@ -53,16 +49,15 @@ async def search_jobs(
     user_id: uuid.UUID,
     db: AsyncSession,
 ) -> JobSearchResponse:
-    """Run the Job Hunter Agent and return fit-scored job cards.
+    # lazy import — pulls in langgraph + jobspy + pandas, skip at startup
+    from app.ai.agents.job_hunter.graph import agent
 
-    Requires a processed CV — the agent's score_node reads from Qdrant, which
-    would return empty results (all-zero scores) without one.
-    """
     await _require_cv(user_id, db)
+    await _check_job_search_limit(user_id, db)
 
     state = await agent.ainvoke({
         "query": query,
-        "user_id": str(user_id),  # str, not UUID — agent state is JSON-serialized
+        "user_id": str(user_id),
         "role": "",
         "location": "",
         "date_from": None,
@@ -70,6 +65,9 @@ async def search_jobs(
         "job_cards": [],
         "source": "",
     })
+
+    # Increment after a successful search
+    await _increment_job_searches(user_id, db)
 
     job_cards = [
         JobCard(
@@ -95,27 +93,6 @@ async def search_jobs(
     )
 
 
-async def _require_cv(user_id: uuid.UUID, db: AsyncSession) -> None:
-    """Raise 404 if the user has no CV with status=done.
-
-    Shared by fit_score_job and search_jobs — both need Qdrant data to be populated.
-    """
-    cv = (
-        await db.execute(
-            select(CVVersion)
-            .where(CVVersion.user_id == user_id)
-            .where(CVVersion.status == CVStatus.done)
-            .limit(1)
-        )
-    ).scalar_one_or_none()
-
-    if cv is None:
-        raise HTTPException(
-            status_code=404,
-            detail="No processed CV on file. Upload and process a CV first.",
-        )
-
-
 async def generate_cover_letter(
     role: str,
     company: str,
@@ -123,15 +100,8 @@ async def generate_cover_letter(
     user_id: uuid.UUID,
     db: AsyncSession,
 ) -> CoverLetterResponse:
-    """Generate a personalized cover letter grounded in the user's CV via RAG.
-
-    Uses the job's role/company/fit_reasoning as the JD context (the full JD text is
-    not stored in the job card) and retrieves the user's most relevant CV chunks to
-    ground every claim in their actual experience.
-    """
     await _require_cv(user_id, db)
 
-    # RAG: retrieve the most relevant CV chunks for this specific role
     query = f"{role} at {company}: {jd_summary}"
     chunks = await retrieve(query, str(user_id), top_k=6)
     cv_context = build_context(chunks)
@@ -150,11 +120,6 @@ async def refine_cover_letter(
     user_id: uuid.UUID,
     db: AsyncSession,
 ) -> CoverLetterResponse:
-    """Apply a targeted edit to an existing cover letter.
-
-    No RAG re-retrieval — the letter already contains CV context from the initial
-    generation; refinements are almost always stylistic or structural changes.
-    """
     await _require_cv(user_id, db)
 
     refined = await generate(
@@ -163,6 +128,58 @@ async def refine_cover_letter(
     )
 
     return CoverLetterResponse(cover_letter=refined)
+
+
+async def _require_cv(user_id: uuid.UUID, db: AsyncSession) -> None:
+    """Raise 404 if the user has no CV with status=done."""
+    cv = (
+        await db.execute(
+            select(CVVersion)
+            .where(CVVersion.user_id == user_id)
+            .where(CVVersion.status == CVStatus.done)
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    if cv is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No processed CV on file. Upload and process a CV first.",
+        )
+
+
+async def _check_job_search_limit(user_id: uuid.UUID, db: AsyncSession) -> None:
+    """Raise 429 if the user has exhausted their job search quota (admins are exempt)."""
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user and not user.is_admin and user.job_searches_used >= JOB_SEARCH_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"You have used all {JOB_SEARCH_LIMIT} job search requests. Contact faiyazawsaf11@gmail.com to get more.",
+        )
+
+
+async def _increment_job_searches(user_id: uuid.UUID, db: AsyncSession) -> None:
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user and not user.is_admin:
+        user.job_searches_used += 1
+        await db.commit()
+
+
+async def _check_chat_limit(user_id: uuid.UUID, db: AsyncSession) -> None:
+    """Raise 429 if the user has exhausted their chat quota (admins are exempt)."""
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user and not user.is_admin and user.chat_messages_used >= CHAT_MESSAGE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"You have used all {CHAT_MESSAGE_LIMIT} AI assistant messages. Contact faiyazawsaf11@gmail.com to get more.",
+        )
+
+
+async def _increment_chat_messages(user_id: uuid.UUID, db: AsyncSession) -> None:
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user and not user.is_admin:
+        user.chat_messages_used += 1
+        await db.commit()
 
 
 def _parse_date(value: str | None) -> date | None:

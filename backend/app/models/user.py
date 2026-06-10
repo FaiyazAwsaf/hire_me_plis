@@ -1,11 +1,14 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Index, Text, func, text
+from sqlalchemy import Boolean, DateTime, Index, Integer, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+JOB_SEARCH_LIMIT = 5
+CHAT_MESSAGE_LIMIT = 5
 
 
 class User(Base):
@@ -22,6 +25,9 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    job_searches_used: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    chat_messages_used: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
 
     cv_versions: Mapped[list["CVVersion"]] = relationship(
         "CVVersion", back_populates="user", cascade="all, delete-orphan"

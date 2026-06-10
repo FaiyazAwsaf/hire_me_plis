@@ -12,6 +12,7 @@ from app.ai.rag.memory import redis_append, redis_load_history
 from app.ai.rag.retriever import retrieve
 from app.core.llm_client import HEAVY_MODEL
 from app.models.chat_message import ChatMessage
+from app.services.job_service import _check_chat_limit, _increment_chat_messages
 
 
 async def save_message(
@@ -93,6 +94,10 @@ async def handle_chat(
     current turn is included in context. Assistant message saved after the last
     yield so the complete response is written atomically.
     """
+    # 0. Enforce per-user chat quota before doing any work
+    import uuid as _uuid
+    await _check_chat_limit(_uuid.UUID(user_id), db)
+
     # 1. Persist user message — Postgres + Redis
     await save_message(session_id, user_id, "user", user_message, db)
 
@@ -117,3 +122,7 @@ async def handle_chat(
 
     # 6. Persist the complete assistant response — runs after the last yield
     await save_message(session_id, user_id, "assistant", "".join(assembled), db)
+
+    # 7. Increment chat counter after a successful response
+    import uuid as _uuid
+    await _increment_chat_messages(_uuid.UUID(user_id), db)
