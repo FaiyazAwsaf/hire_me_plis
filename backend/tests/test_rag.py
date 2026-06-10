@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.ai.rag.context import build_context
 from app.ai.rag.memory import redis_append, redis_load_history
-from app.ai.rag.retriever import retrieve
+from app.ai.rag.retriever import _classify_intent, retrieve
 from app.ai.vector_store.search import SearchResult
 
 _FAKE_VECTOR = [0.1] * 1536
@@ -162,37 +162,102 @@ class TestMemory:
 
 
 # ---------------------------------------------------------------------------
-# Retriever — mock embed_text and search_chunks at the retriever module level
+# _classify_intent — mock generate to test JSON parsing and fallback
+# ---------------------------------------------------------------------------
+
+_SEMANTIC_CLASSIFY = AsyncMock(return_value=("semantic_search", None))
+_ENUMERATE_EXPERIENCE = AsyncMock(return_value=("enumerate_section", "experience"))
+
+
+class TestClassifyIntent:
+    async def test_enumerate_section_returns_correct_tuple(self):
+        raw = '{"intent": "enumerate_section", "section": "projects"}'
+        with patch("app.ai.rag.retriever.generate", AsyncMock(return_value=raw)):
+            intent, section = await _classify_intent("list all my projects")
+        assert intent == "enumerate_section"
+        assert section == "projects"
+
+    async def test_semantic_search_returns_none_section(self):
+        raw = '{"intent": "semantic_search"}'
+        with patch("app.ai.rag.retriever.generate", AsyncMock(return_value=raw)):
+            intent, section = await _classify_intent("am I ready for a data engineer role?")
+        assert intent == "semantic_search"
+        assert section is None
+
+    async def test_invalid_section_name_falls_back_to_semantic(self):
+        """LLM returning an unknown section name must not be trusted — fall back to vector search."""
+        raw = '{"intent": "enumerate_section", "section": "hobbies"}'
+        with patch("app.ai.rag.retriever.generate", AsyncMock(return_value=raw)):
+            intent, section = await _classify_intent("list all my hobbies")
+        assert intent == "semantic_search"
+        assert section is None
+
+    async def test_llm_failure_falls_back_to_semantic(self):
+        """If the LLM call raises, _classify_intent must degrade gracefully, never re-raise."""
+        with patch("app.ai.rag.retriever.generate", AsyncMock(side_effect=Exception("LLM down"))):
+            intent, section = await _classify_intent("list all my projects")
+        assert intent == "semantic_search"
+        assert section is None
+
+    async def test_malformed_json_falls_back_to_semantic(self):
+        """Unparseable LLM output must not propagate a JSONDecodeError."""
+        with patch("app.ai.rag.retriever.generate", AsyncMock(return_value="not json at all")):
+            intent, section = await _classify_intent("show me my skills")
+        assert intent == "semantic_search"
+        assert section is None
+
+
+# ---------------------------------------------------------------------------
+# retrieve — mock _classify_intent to test routing logic in isolation
 # ---------------------------------------------------------------------------
 
 class TestRetriever:
-    async def test_passes_query_to_embed(self):
-        with patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=_FAKE_VECTOR)) as mock_embed, \
+    async def test_semantic_query_passes_query_to_embed(self):
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("semantic_search", None))), \
+             patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=_FAKE_VECTOR)) as mock_embed, \
              patch("app.ai.rag.retriever.search_chunks", AsyncMock(return_value=[])):
             await retrieve("what are my strongest skills?", "user-1")
-
         mock_embed.assert_awaited_once_with("what are my strongest skills?")
 
-    async def test_passes_embed_vector_to_search(self):
+    async def test_semantic_query_passes_vector_to_search(self):
         """The vector from embed_text must flow into search_chunks unchanged."""
         custom_vec = [0.5] * 1536
-        with patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=custom_vec)), \
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("semantic_search", None))), \
+             patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=custom_vec)), \
              patch("app.ai.rag.retriever.search_chunks", AsyncMock(return_value=[])) as mock_search:
             await retrieve("query", "user-1")
-
         assert mock_search.call_args.args[0] == custom_vec
 
-    async def test_passes_user_id_and_top_k_to_search(self):
-        with patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=_FAKE_VECTOR)), \
+    async def test_semantic_query_passes_user_id_and_top_k(self):
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("semantic_search", None))), \
+             patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=_FAKE_VECTOR)), \
              patch("app.ai.rag.retriever.search_chunks", AsyncMock(return_value=[])) as mock_search:
             await retrieve("query", "user-xyz", top_k=3)
-
         mock_search.assert_awaited_once_with(_FAKE_VECTOR, "user-xyz", 3)
+
+    async def test_enumerate_query_uses_scroll_not_vector_search(self):
+        """Section enumeration must use scroll (full recall) and never call embed_text."""
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("enumerate_section", "projects"))), \
+             patch("app.ai.rag.retriever.scroll_section_texts", AsyncMock(return_value=["proj A", "proj B"])) as mock_scroll, \
+             patch("app.ai.rag.retriever.embed_text", AsyncMock()) as mock_embed:
+            results = await retrieve("list all my projects", "user-1")
+        mock_scroll.assert_awaited_once_with("user-1", "projects")
+        mock_embed.assert_not_awaited()
+        assert len(results) == 2
+        assert all(r.section == "projects" for r in results)
+        assert all(r.score == 1.0 for r in results)
+
+    async def test_enumerate_wraps_texts_as_search_results_with_sequential_index(self):
+        """scroll texts must map to SearchResult with score=1.0 and sequential chunk_index."""
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("enumerate_section", "experience"))), \
+             patch("app.ai.rag.retriever.scroll_section_texts", AsyncMock(return_value=["A", "B", "C"])):
+            results = await retrieve("show me my experience", "user-1")
+        assert [(r.text, r.chunk_index) for r in results] == [("A", 0), ("B", 1), ("C", 2)]
 
     async def test_returns_empty_list_on_no_results(self):
         """Empty Qdrant results must never raise — propagated as [] to callers."""
-        with patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=_FAKE_VECTOR)), \
+        with patch("app.ai.rag.retriever._classify_intent", AsyncMock(return_value=("semantic_search", None))), \
+             patch("app.ai.rag.retriever.embed_text", AsyncMock(return_value=_FAKE_VECTOR)), \
              patch("app.ai.rag.retriever.search_chunks", AsyncMock(return_value=[])):
             result = await retrieve("obscure query", "user-1")
-
         assert result == []

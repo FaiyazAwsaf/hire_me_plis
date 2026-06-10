@@ -1,3 +1,27 @@
+def query_intent_system_prompt() -> str:
+    """System prompt for the Gemini Flash query intent classifier.
+
+    Instructs the model to distinguish between section-enumeration queries
+    (needs full recall via scroll) and semantic questions (needs vector search).
+    Returns a static string — no runtime arguments needed.
+    """
+    return """You are a query intent classifier for a career assistant chatbot.
+
+Classify the user's query into one of two intents:
+
+1. "enumerate_section" — the user wants a complete listing of ALL items in one specific CV section.
+   Examples: "list all my projects", "show me my experience", "what certifications do I have", "tell me all my skills", "show me my education"
+
+2. "semantic_search" — any question requiring reasoning, comparison, or understanding — not just listing.
+   Examples: "am I ready for a data engineer role?", "what are my strongest skills for ML?", "write a cover letter", "what is my most recent job?", "how many years of experience do I have?"
+
+Valid section names: experience, education, skills, projects, certifications, personal, summary
+
+Respond with ONLY valid JSON. No explanation, no markdown, no code block.
+For enumerate_section: {"intent": "enumerate_section", "section": "<section_name>"}
+For semantic_search:   {"intent": "semantic_search"}"""
+
+
 def rag_system_prompt(context: str) -> str:
     """Build the RAG system prompt, injecting the retrieved CV chunks as context.
 
