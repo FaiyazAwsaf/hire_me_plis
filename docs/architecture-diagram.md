@@ -132,18 +132,23 @@ User sends message via WebSocket
          │
          ├─── RAG retrieval  (fresh per message)
          │    Gemini Flash → classify intent
-         │         ┌─────────────────────────────────────────────────┐
-         │         │ enumerate_section  (e.g. "list all my projects") │
-         │         │   scroll_section_texts(user_id, section)         │
-         │         │        ──────────────────────────► Qdrant        │
-         │         │        ◄── all chunks in section ──              │
-         │         ├─────────────────────────────────────────────────┤
-         │         │ semantic_search  (e.g. "am I ready for X role?") │
-         │         │   embed(user_message) → OpenAI text-embedding-3- │
-         │         │   small → search_chunks(vector, user_id, top_k=5)│
-         │         │        ──────────────────────────► Qdrant        │
-         │         │        ◄── top-5 by cosine score ──              │
-         │         └─────────────────────────────────────────────────┘
+         │         ┌──────────────────────────────────────────────────────────┐
+         │         │ enumerate_section  (e.g. "list all my projects")        │
+         │         │   scroll_section_texts(user_id, section)                │
+         │         │        ──────────────────────────► Qdrant               │
+         │         │        ◄── all chunks in that section ──                │
+         │         ├──────────────────────────────────────────────────────────┤
+         │         │ profile_overview  (e.g. "what jobs fit my entire CV?")  │
+         │         │   asyncio.gather(scroll all 7 sections in parallel)     │
+         │         │        ──────────────────────────► Qdrant               │
+         │         │        ◄── complete CV, 7 sections, one HTTP round-trip │
+         │         ├──────────────────────────────────────────────────────────┤
+         │         │ semantic_search  (e.g. "am I ready for X role?")        │
+         │         │   embed(user_message) → OpenAI text-embedding-3-small   │
+         │         │   search_chunks(vector, user_id, top_k=5)               │
+         │         │        ──────────────────────────► Qdrant               │
+         │         │        ◄── top-5 by cosine score ──                     │
+         │         └──────────────────────────────────────────────────────────┘
          │    build_context(results) → "[section]\ntext\n\n[section]\ntext"
          │
          ├─── Assemble LLM messages
