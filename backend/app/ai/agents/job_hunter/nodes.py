@@ -1,6 +1,9 @@
 import asyncio
 import json
 import logging
+import re
+
+import httpx
 
 from app.ai.agents.fit_scorer import scorer
 from app.ai.agents.job_hunter.state import JobHunterState
@@ -118,8 +121,12 @@ async def score_node(state: JobHunterState) -> dict:
         return {"job_cards": []}
 
     async def score_one(job: dict) -> dict | None:
+        desc = (job.get("description") or "").strip()
+        if len(desc) < 50:
+            logger.info(f"'{job.get('role')}' at '{job.get('company')}': short description, fetching from URL")
+            desc = await _fetch_description(job.get("url", ""), job)
         try:
-            result = await scorer.score(job["description"], user_id)
+            result = await scorer.score(desc, user_id)
             return {
                 "id": job["id"],
                 "role": job["role"],
@@ -144,6 +151,31 @@ async def score_node(state: JobHunterState) -> dict:
     job_cards = [r for r in results if r is not None]
     logger.info(f"✅ Scored {len(job_cards)}/{len(raw_jobs)} jobs successfully")
     return {"job_cards": job_cards}
+
+
+async def _fetch_description(url: str, job: dict) -> str:
+    """Fetch a job description from the posting URL when the scraper returned none.
+
+    Falls back to a minimal title+company string so the scorer always gets
+    something — avoids the empty-string 400 error from OpenAI embeddings.
+    """
+    if url:
+        try:
+            async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+                resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+                if resp.status_code == 200:
+                    text = re.sub(r"<[^>]+>", " ", resp.text)  # strip HTML tags
+                    text = re.sub(r"\s+", " ", text).strip()    # collapse whitespace
+                    if len(text) >= 50:
+                        logger.info(f"Fetched {len(text)} chars from {url}")
+                        return text[:3000]
+        except Exception as exc:
+            logger.debug(f"URL fetch failed for {url}: {type(exc).__name__}: {exc}")
+
+    # Absolute fallback — title + company gives at least some semantic signal
+    fallback = f"{job.get('role', '')} position at {job.get('company', '')} in {job.get('location', '')}".strip()
+    logger.info(f"Using title fallback for '{job.get('role')}' at '{job.get('company')}'")
+    return fallback
 
 
 def _strip_fences(text: str) -> str:

@@ -77,8 +77,8 @@ User: "Find ML internships in Dhaka this month"
   │  Node 2 — search_node  (asyncio.gather — all parallel) │
   │    ┌─────────────┐  ┌───────────┐  ┌─────────────────┐ │
   │    │  BDJobs     │  │ LinkedIn  │  │    JSearch API  │ │
-  │    │ (python-    │  │ (python-  │  │  (RapidAPI —    │ │
-  │    │  jobspy)    │  │  jobspy)  │  │   aggregates    │ │
+  │    │ (REST API,  │  │ (python-  │  │  (OpenWebNinja  │ │
+  │    │  gateway.bd)│  │  jobspy)  │  │   aggregates    │ │
   │    └─────────────┘  └───────────┘  │  LinkedIn /     │ │
   │                                    │  Indeed /       │ │
   │    ┌─────────────┐                 │  Glassdoor)     │ │
@@ -92,7 +92,7 @@ User: "Find ML internships in Dhaka this month"
   │    For each job — POST /jobs/score (internal):          │
   │                                                         │
   │    Gemini Flash → extract JD skills                     │
-  │    Jaccard(jd_skills ∩ cv_skills) → skill_match  [30%] │
+  │    Recall(jd_skills ∩ cv_skills / |jd_skills|) → skill_match [30%] │
   │                                                         │
   │    embed(JD text) → OpenAI text-embedding-3-small       │
   │    cosine vs top-5 cv_chunks (Qdrant, user_id filter)   │
@@ -108,8 +108,8 @@ User: "Find ML internships in Dhaka this month"
          │
          ▼
   Response: structured job cards
-  { role, company, location, salary_range,
-    deadline, url, fit_score, fit_reasoning }
+  { role, company, location, salary_range, deadline, url,
+    source_platform, fit_score, fit_reasoning, missing_skills }
 ```
 
 ---
@@ -131,12 +131,25 @@ User sends message via WebSocket
          │                   re-seed Redis → continue
          │
          ├─── RAG retrieval  (fresh per message)
-         │    embed(user_message) → OpenAI text-embedding-3-small
-         │    search_chunks(vector, user_id=<current>, top_k=5)
-         │         ──────────────────────────────► Qdrant
-         │         ◄── [{section, text, score}] ──  (user_id filter enforced)
-         │    build_context(results)
-         │         → "[experience]\n...\n\n[skills]\n..."
+         │    Gemini Flash → classify intent
+         │         ┌──────────────────────────────────────────────────────────┐
+         │         │ enumerate_section  (e.g. "list all my projects")        │
+         │         │   scroll_section_texts(user_id, section)                │
+         │         │        ──────────────────────────► Qdrant               │
+         │         │        ◄── all chunks in that section ──                │
+         │         ├──────────────────────────────────────────────────────────┤
+         │         │ profile_overview  (e.g. "what jobs fit my entire CV?")  │
+         │         │   asyncio.gather(scroll all 7 sections in parallel)     │
+         │         │        ──────────────────────────► Qdrant               │
+         │         │        ◄── complete CV, 7 sections, one HTTP round-trip │
+         │         ├──────────────────────────────────────────────────────────┤
+         │         │ semantic_search  (e.g. "am I ready for X role?")        │
+         │         │   embed(user_message) → OpenAI text-embedding-3-small   │
+         │         │   search_chunks(vector, user_id, top_k=5)               │
+         │         │        ──────────────────────────► Qdrant               │
+         │         │        ◄── top-5 by cosine score ──                     │
+         │         └──────────────────────────────────────────────────────────┘
+         │    build_context(results) → "[section]\ntext\n\n[section]\ntext"
          │
          ├─── Assemble LLM messages
          │    [ { role: "system",  content: rag_system_prompt(context) },

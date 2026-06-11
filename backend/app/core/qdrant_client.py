@@ -2,7 +2,11 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Distance, VectorParams
 from app.config import settings
 
-qdrant = AsyncQdrantClient(url=settings.qdrant_url)
+# api_key is empty string in local dev (unauthenticated); required for Qdrant Cloud
+qdrant = AsyncQdrantClient(
+    url=settings.qdrant_url,
+    api_key=settings.qdrant_api_key or None,
+)
 
 
 async def ensure_collection() -> None:
