@@ -77,8 +77,8 @@ User: "Find ML internships in Dhaka this month"
   │  Node 2 — search_node  (asyncio.gather — all parallel) │
   │    ┌─────────────┐  ┌───────────┐  ┌─────────────────┐ │
   │    │  BDJobs     │  │ LinkedIn  │  │    JSearch API  │ │
-  │    │ (python-    │  │ (python-  │  │  (RapidAPI —    │ │
-  │    │  jobspy)    │  │  jobspy)  │  │   aggregates    │ │
+  │    │ (REST API,  │  │ (python-  │  │  (OpenWebNinja  │ │
+  │    │  gateway.bd)│  │  jobspy)  │  │   aggregates    │ │
   │    └─────────────┘  └───────────┘  │  LinkedIn /     │ │
   │                                    │  Indeed /       │ │
   │    ┌─────────────┐                 │  Glassdoor)     │ │
@@ -92,7 +92,7 @@ User: "Find ML internships in Dhaka this month"
   │    For each job — POST /jobs/score (internal):          │
   │                                                         │
   │    Gemini Flash → extract JD skills                     │
-  │    Jaccard(jd_skills ∩ cv_skills) → skill_match  [30%] │
+  │    Recall(jd_skills ∩ cv_skills / |jd_skills|) → skill_match [30%] │
   │                                                         │
   │    embed(JD text) → OpenAI text-embedding-3-small       │
   │    cosine vs top-5 cv_chunks (Qdrant, user_id filter)   │
@@ -108,8 +108,8 @@ User: "Find ML internships in Dhaka this month"
          │
          ▼
   Response: structured job cards
-  { role, company, location, salary_range,
-    deadline, url, fit_score, fit_reasoning }
+  { role, company, location, salary_range, deadline, url,
+    source_platform, fit_score, fit_reasoning, missing_skills }
 ```
 
 ---
