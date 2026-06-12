@@ -10,6 +10,18 @@ An agentic career co-pilot. Uploads your CV once — every job search, fit score
 
 ---
 
+
+## Feature Overview
+
+| Pillar                            | What it does                                                               |
+| --------------------------------- | -------------------------------------------------------------------------- |
+| **Job Hunter Agent**              | NL query → LangGraph agent → parallel job board search → fit-scored cards  |
+| **Profile & Resume Intelligence** | CV upload → parse → classify → embed → Qdrant vector store                 |
+| **Personal AI Assistant**         | RAG-grounded chat: gap analysis, readiness checks, cover letters, roadmaps |
+| **Productivity Tracker**          | Kanban board, goals, calendar, dashboard stats, AI nudges                  |
+
+---
+
 ## Prerequisites
 
 | Tool                    | Version |
@@ -188,13 +200,3 @@ hire_me_plis/
 └── docker-compose.yml     # Full local stack
 ```
 
----
-
-## Four Pillars
-
-| Pillar                            | What it does                                                               |
-| --------------------------------- | -------------------------------------------------------------------------- |
-| **Job Hunter Agent**              | NL query → LangGraph agent → parallel job board search → fit-scored cards  |
-| **Profile & Resume Intelligence** | CV upload → parse → classify → embed → Qdrant vector store                 |
-| **Personal AI Assistant**         | RAG-grounded chat: gap analysis, readiness checks, cover letters, roadmaps |
-| **Productivity Tracker**          | Kanban board, goals, calendar, dashboard stats, AI nudges                  |
