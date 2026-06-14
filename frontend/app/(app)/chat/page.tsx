@@ -15,10 +15,13 @@ import {
   Sparkles,
   User,
   Trash2,
+  Briefcase,
+  X,
 } from "lucide-react";
 import { createChatSocket, type ChatWebSocket } from "@/lib/websocket";
 import api from "@/lib/api";
 import { useChatStore } from "@/store/chat";
+import { type Application } from "@/store/tracker";
 
 export default function ChatPage() {
   const { messages, sessionId, isStreaming, addMessage, appendToken, finalizeAssistant, setStreaming, setSessionId, clear } =
@@ -30,8 +33,13 @@ export default function ChatPage() {
   const [ready, setReady] = useState(false);
   const [sessions, setSessions] = useState<{ id: string; label: string }[]>([]);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // Job-aware context: loaded once on mount so user can select a saved application
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const socketRef = useRef<ChatWebSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const selectedApp = applications.find((a) => a.id === selectedAppId) ?? null;
 
   function fetchSessions() {
     api
@@ -39,6 +47,14 @@ export default function ChatPage() {
       .then((r) => setSessions(r.data.sessions.map((s) => ({ id: s.session_id, label: s.label }))))
       .catch(() => {});
   }
+
+  // Fetch saved applications once so the user can select one as chat context
+  useEffect(() => {
+    api
+      .get<{ applications: Application[] }>("/applications")
+      .then((r) => setApplications(r.data.applications))
+      .catch(() => {});
+  }, []);
 
   // Seed sessionId on the client only — avoids SSR/client UUID mismatch
   useEffect(() => {
@@ -108,7 +124,7 @@ export default function ChatPage() {
     setError(null);
     addMessage({ role: "user", content: text });
     setStreaming(true);
-    socketRef.current.send(text, sessionId);
+    socketRef.current.send(text, sessionId, selectedAppId);
     setInputMessage("");
   }
 
@@ -307,7 +323,45 @@ export default function ChatPage() {
           )}
 
           {/* Persistent Input Bar */}
-          <div className="shrink-0 border-t-2 border-black bg-white p-4">
+          <div className="shrink-0 border-t-2 border-black bg-white p-4 space-y-2">
+            {/* Job context selector — only shown when the user has saved applications */}
+            {applications.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+                <select
+                  value={selectedAppId ?? ""}
+                  onChange={(e) => setSelectedAppId(e.target.value || null)}
+                  className="flex-1 rounded-none border-2 border-black bg-white px-3 py-1.5 font-mono text-[11px] font-bold text-black focus:outline-none focus:ring-0 appearance-none truncate"
+                >
+                  <option value="">Ask about a specific job… (optional)</option>
+                  {applications.map((app) => (
+                    <option key={app.id} value={app.id}>
+                      {app.role} at {app.company}
+                    </option>
+                  ))}
+                </select>
+                {selectedAppId && (
+                  <button
+                    onClick={() => setSelectedAppId(null)}
+                    title="Clear job context"
+                    className="shrink-0 h-7 w-7 flex items-center justify-center rounded-none border-2 border-black bg-white text-black hover:bg-neutral-100 shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-colors"
+                  >
+                    <X className="h-3 w-3 stroke-[3px]" />
+                  </button>
+                )}
+              </div>
+            )}
+            {/* Active job context badge */}
+            {selectedApp && (
+              <div className="flex items-center gap-2 rounded-none border border-violet-300 bg-violet-50 px-3 py-1.5">
+                <span className="font-mono text-[10px] font-black uppercase tracking-wider text-violet-700">
+                  Context:
+                </span>
+                <span className="font-mono text-[11px] font-bold text-violet-900 truncate">
+                  {selectedApp.role} @ {selectedApp.company}
+                </span>
+              </div>
+            )}
             <div className="w-full flex gap-3">
               <Input
                 value={inputMessage}

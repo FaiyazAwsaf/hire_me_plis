@@ -6,7 +6,7 @@ export type WsMessage =
   | { type: "error"; content: string };
 
 export interface ChatWebSocket {
-  send: (message: string, sessionId: string) => void;
+  send: (message: string, sessionId: string, jobId?: string | null) => void;
   close: () => void;
 }
 
@@ -66,9 +66,11 @@ export function createChatSocket(
   };
 
   return {
-    send(message: string, sessionId: string) {
+    send(message: string, sessionId: string, jobId?: string | null) {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ message, session_id: sessionId }));
+        const payload: Record<string, string> = { message, session_id: sessionId };
+        if (jobId) payload.job_id = jobId;
+        ws.send(JSON.stringify(payload));
       }
     },
     close() {

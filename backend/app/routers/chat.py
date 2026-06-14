@@ -55,6 +55,7 @@ async def chat_ws(websocket: WebSocket, db: _DB):
             data = await websocket.receive_json()
             message = data["message"]
             session_id = data["session_id"]
+            job_id: str | None = data.get("job_id")  # optional — enables job-aware responses
         except WebSocketDisconnect:
             break
         except (KeyError, ValueError):
@@ -62,7 +63,7 @@ async def chat_ws(websocket: WebSocket, db: _DB):
             continue
 
         try:
-            async for token in chat_service.handle_chat(str(user.id), session_id, message, db):
+            async for token in chat_service.handle_chat(str(user.id), session_id, message, db, job_id):
                 await websocket.send_json({"type": "token", "content": token})
             await websocket.send_json({"type": "done", "content": ""})
         except Exception as e:
