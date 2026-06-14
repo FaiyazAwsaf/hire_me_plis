@@ -10,6 +10,7 @@ from app.database import Base
 
 
 class ApplicationStatus(str, enum.Enum):
+    shortlist = "shortlist"
     applied = "applied"
     interviewing = "interviewing"
     offer = "offer"
@@ -40,6 +41,9 @@ class Application(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     salary_range: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cover_letter_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Stores a summary of the job description for AI context (populated at save-from-job-hunt)
+    jd_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     applied_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

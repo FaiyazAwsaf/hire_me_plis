@@ -23,16 +23,22 @@ import {
   Square,
   AlertCircle,
   Upload,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import api from "@/lib/api";
 import { useJobsStore, type JobCard } from "@/store/jobs";
+import { useTrackerStore, type Application } from "@/store/tracker";
 
 function JobsSearchContent() {
   const { results, isSearching, query, setResults, setSearching, setQuery } =
     useJobsStore();
+  const { addApplication } = useTrackerStore();
 
   const [error, setError] = useState<string | null>(null);
   const [hasCv, setHasCv] = useState<boolean | null>(null); // null = checking, false = missing, true = present
+  // Tracks which job IDs the user has already saved to avoid double-saving
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   // Track specific checklist items from Screenshot 2026-06-08 013036.png
   const [currentStep, setCurrentStep] = useState(0);
@@ -121,6 +127,29 @@ function JobsSearchContent() {
   const processedJobs = [...results].sort(
     (a, b) => (b.fit_score || 0) - (a.fit_score || 0),
   );
+
+  async function handleSave(e: React.MouseEvent, job: JobCard) {
+    e.preventDefault();
+    e.stopPropagation(); // prevent the parent <Link> from navigating
+    if (savedIds.has(job.id)) return;
+    try {
+      const res = await api.post<Application>("/applications", {
+        role: job.role,
+        company: job.company,
+        url: job.url,
+        status: "shortlist",
+        jd_text: job.fit_reasoning,
+        deadline: job.deadline ?? null,
+        salary_range: job.salary_range ?? null,
+        notes: null,
+        cover_letter_url: null,
+      });
+      addApplication(res.data);
+      setSavedIds((prev) => new Set([...prev, job.id]));
+    } catch (err) {
+      console.error("Failed to save job to board:", err);
+    }
+  }
 
   async function handleSearch(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -407,9 +436,33 @@ function JobsSearchContent() {
                           )}
                         </div>
 
-                        <div className="text-xs font-mono font-black uppercase tracking-wider text-black flex items-center justify-end gap-1.5 group-hover:underline pt-1">
-                          <span>View details</span>
-                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                        <div className="flex items-center justify-between pt-1">
+                          <button
+                            onClick={(e) => handleSave(e, job)}
+                            className={cn(
+                              "flex items-center gap-1.5 rounded-none border-2 px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-wider transition-all shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5",
+                              savedIds.has(job.id)
+                                ? "border-emerald-600 bg-emerald-50 text-emerald-700 cursor-default"
+                                : "border-black bg-white text-black hover:bg-neutral-50",
+                            )}
+                            disabled={savedIds.has(job.id)}
+                          >
+                            {savedIds.has(job.id) ? (
+                              <>
+                                <BookmarkCheck className="h-3.5 w-3.5 shrink-0" />
+                                <span>Saved</span>
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark className="h-3.5 w-3.5 shrink-0" />
+                                <span>Save to Board</span>
+                              </>
+                            )}
+                          </button>
+                          <span className="text-xs font-mono font-black uppercase tracking-wider text-black flex items-center gap-1.5 group-hover:underline">
+                            <span>View details</span>
+                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                          </span>
                         </div>
                       </CardContent>
                     </Card>

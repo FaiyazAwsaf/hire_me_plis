@@ -27,17 +27,27 @@ For profile_overview:  {"intent": "profile_overview"}
 For semantic_search:   {"intent": "semantic_search"}"""
 
 
-def rag_system_prompt(context: str) -> str:
+def rag_system_prompt(context: str, job_context: str | None = None) -> str:
     """Build the RAG system prompt, injecting the retrieved CV chunks as context.
 
     If no CV has been uploaded yet, context is empty — the assistant falls back to
     general career advice rather than refusing to respond.
+    When job_context is provided, it is prepended so the model can cross-reference
+    the specific role against the user's CV.
     """
     cv_block = (
         context
         if context
         else "No CV has been uploaded yet. Answer based on general career advice only."
     )
+
+    job_section = (
+        f"\n{job_context}\n\n"
+        "When answering, cross-reference the job requirements above against the user's CV below.\n"
+        if job_context
+        else ""
+    )
+
     return f"""You are a personal career assistant. Your job is to help the user with their job search, \
 career planning, and professional development.
 
@@ -59,6 +69,6 @@ You can help with:
 - Career roadmaps and next steps
 - Cover letter and interview preparation grounded in the user's actual background
 - Explaining how the user's experience maps to a job description
-
+{job_section}
 CV CONTEXT:
 {cv_block}"""
