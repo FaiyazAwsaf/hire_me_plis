@@ -22,11 +22,14 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Globe,
+  FileText,
 } from "lucide-react";
 import api from "@/lib/api";
 import { useTrackerStore, type Application, type ApplicationStatus, type Goal, type CalendarEvent } from "@/store/tracker";
 
 const COLUMNS = [
+  { id: "shortlist", label: "Shortlist", color: "bg-violet-500" },
   { id: "applied", label: "Applied", color: "bg-blue-500" },
   { id: "interviewing", label: "Interviewing", color: "bg-amber-500" },
   { id: "offer", label: "Offer", color: "bg-emerald-500" },
@@ -86,6 +89,8 @@ function TrackerContent() {
   // Application form states
   const [newRole, setNewRole] = useState("");
   const [newCompany, setNewCompany] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+  const [newCoverLetterUrl, setNewCoverLetterUrl] = useState("");
 
   // Goal form states
   const [newGoalTitle, setNewGoalTitle] = useState("");
@@ -156,15 +161,18 @@ function TrackerContent() {
       const res = await api.post<Application>("/applications", {
         role: newRole,
         company: newCompany,
-        status: "applied",
-        url: null,
+        status: "shortlist",
+        url: newUrl.trim() || null,
         deadline: null,
         salary_range: null,
         notes: null,
+        cover_letter_url: newCoverLetterUrl.trim() || null,
       });
       addApplication(res.data);
       setNewRole("");
       setNewCompany("");
+      setNewUrl("");
+      setNewCoverLetterUrl("");
       setShowAppForm(false);
     } catch (err) {
       console.error("Failed to add application:", err);
@@ -421,6 +429,16 @@ function TrackerContent() {
                     <Input value={newCompany} onChange={(e) => setNewCompany(e.target.value)} placeholder="e.g. Stripe" className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" required />
                   </div>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Job URL <span className="normal-case font-medium">(optional)</span></Label>
+                    <Input value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="https://careers.company.com/..." className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Cover Letter Link <span className="normal-case font-medium">(Google Docs — optional)</span></Label>
+                    <Input value={newCoverLetterUrl} onChange={(e) => setNewCoverLetterUrl(e.target.value)} placeholder="https://docs.google.com/document/d/..." className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  </div>
+                </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <Button
                     type="button"
@@ -517,7 +535,7 @@ function TrackerContent() {
               {COLUMNS.map((col) => {
                 const columnApps = applications.filter((app) => app.status === col.id);
                 return (
-                  <div key={col.id} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)} className="flex min-w-[260px] flex-1 flex-col gap-3 rounded-none border-2 border-black bg-neutral-50 p-3 shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-colors duration-150">
+                  <div key={col.id} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id as ApplicationStatus)} className="flex min-w-[260px] flex-1 flex-col gap-3 rounded-none border-2 border-black bg-neutral-50 p-3 shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-colors duration-150">
                     <div className="flex items-center gap-2 px-1">
                       <span className={`h-2.5 w-2.5 rounded-none border-2 border-black ${col.color}`} />
                       <span className="font-mono font-black text-xs text-black uppercase tracking-wider">{col.label}</span>
@@ -547,6 +565,37 @@ function TrackerContent() {
                               <GripVertical className="h-3.5 w-3.5 text-neutral-300 group-hover:text-black transition-colors shrink-0" />
                             </div>
                           </div>
+                          {/* Job URL and cover letter quick-links */}
+                          {(app.url || app.cover_letter_url) && (
+                            <div className="flex items-center gap-2">
+                              {app.url && (
+                                <a
+                                  href={app.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Job posting"
+                                  className="flex items-center gap-1 text-[10px] font-mono font-black text-blue-600 hover:text-blue-800 transition-colors"
+                                >
+                                  <Globe className="h-3 w-3 shrink-0" />
+                                  <span>Job</span>
+                                </a>
+                              )}
+                              {app.cover_letter_url && (
+                                <a
+                                  href={app.cover_letter_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Cover letter (Google Docs)"
+                                  className="flex items-center gap-1 text-[10px] font-mono font-black text-violet-600 hover:text-violet-800 transition-colors"
+                                >
+                                  <FileText className="h-3 w-3 shrink-0" />
+                                  <span>Cover letter</span>
+                                </a>
+                              )}
+                            </div>
+                          )}
                           {app.deadline && <p className="text-[10px] text-neutral-500 font-mono">Due: {app.deadline}</p>}
                         </div>
                       ))}

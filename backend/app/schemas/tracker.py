@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ApplicationStatus(str, enum.Enum):
+    shortlist = "shortlist"
     applied = "applied"
     interviewing = "interviewing"
     offer = "offer"
@@ -24,6 +25,8 @@ class ApplicationCreate(BaseModel):
     notes: str | None = None
     deadline: date | None = None
     salary_range: str | None = None
+    cover_letter_url: str | None = None
+    jd_text: str | None = None
 
 
 class ApplicationUpdate(BaseModel):
@@ -34,6 +37,7 @@ class ApplicationUpdate(BaseModel):
     notes: str | None = None
     deadline: date | None = None
     salary_range: str | None = None
+    cover_letter_url: str | None = None
 
 
 class ApplicationStatusUpdate(BaseModel):
@@ -51,6 +55,8 @@ class ApplicationResponse(BaseModel):
     notes: str | None = None
     deadline: date | None = None
     salary_range: str | None = None
+    cover_letter_url: str | None = None
+    jd_text: str | None = None
     applied_at: datetime
 
 
