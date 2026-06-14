@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Globe,
   FileText,
+  Pencil,
 } from "lucide-react";
 import api from "@/lib/api";
 import { useTrackerStore, type Application, type ApplicationStatus, type Goal, type CalendarEvent } from "@/store/tracker";
@@ -44,7 +45,7 @@ function TrackerContent() {
   );
   const formRef = useRef<HTMLDivElement>(null);
 
-  const { applications, goals, events, setApplications, setGoals, setEvents, addApplication, addGoal, updateGoal, removeGoal, updateApplicationStatus } = useTrackerStore();
+  const { applications, goals, events, setApplications, setGoals, setEvents, addApplication, addGoal, updateGoal, removeGoal, updateApplicationStatus, updateApplication } = useTrackerStore();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,6 +102,11 @@ function TrackerContent() {
   const [newTaskCat, setNewTaskCat] = useState<string>("learning");
   const [customCategoryInput, setCustomCategoryInput] = useState("");
   const [showInlineCustomInput, setShowInlineCustomInput] = useState(false);
+
+  // Edit modal state
+  const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [editForm, setEditForm] = useState({ role: "", company: "", url: "", cover_letter_url: "", notes: "", deadline: "", salary_range: "" });
+  const [editSaving, setEditSaving] = useState(false);
 
   const [showAppForm, setShowAppForm] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
@@ -178,6 +184,43 @@ function TrackerContent() {
       console.error("Failed to add application:", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Open edit modal pre-populated with the card's current values
+  const openEdit = (app: Application) => {
+    setEditingApp(app);
+    setEditForm({
+      role: app.role,
+      company: app.company,
+      url: app.url ?? "",
+      cover_letter_url: app.cover_letter_url ?? "",
+      notes: app.notes ?? "",
+      deadline: app.deadline ?? "",
+      salary_range: app.salary_range ?? "",
+    });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingApp) return;
+    setEditSaving(true);
+    try {
+      const res = await api.patch<Application>(`/applications/${editingApp.id}`, {
+        role: editForm.role.trim(),
+        company: editForm.company.trim(),
+        url: editForm.url.trim() || null,
+        cover_letter_url: editForm.cover_letter_url.trim() || null,
+        notes: editForm.notes.trim() || null,
+        deadline: editForm.deadline || null,
+        salary_range: editForm.salary_range.trim() || null,
+      });
+      updateApplication(editingApp.id, res.data);
+      setEditingApp(null);
+    } catch (err) {
+      console.error("Failed to update application:", err);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -553,6 +596,13 @@ function TrackerContent() {
                             </div>
                             <div className="flex items-center gap-1">
                               <button
+                                onClick={(e) => { e.stopPropagation(); openEdit(app); }}
+                                className="p-1 text-neutral-300 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                title="Edit application"
+                              >
+                                <Pencil className="h-3 w-3 stroke-[2.5px]" />
+                              </button>
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDeleteApplication(app.id, app.role, app.company);
@@ -798,6 +848,84 @@ function TrackerContent() {
           )}
         </div>
       </div>
+
+      {/* Edit application modal */}
+      {editingApp && (
+        <div className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-none border-2 border-black bg-white shadow-[8px_8px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+            <div className="bg-neutral-50 border-b-2 border-black p-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-mono font-black uppercase tracking-wider text-black">Edit Application</h3>
+                <p className="text-[10px] font-sans font-bold text-neutral-500 mt-0.5">{editingApp.role} · {editingApp.company}</p>
+              </div>
+              <button
+                onClick={() => setEditingApp(null)}
+                className="h-7 w-7 border-2 border-black flex items-center justify-center bg-white text-black hover:bg-neutral-50 shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-transform active:translate-x-[1px] active:translate-y-[1px]"
+              >
+                <X className="h-3.5 w-3.5 stroke-[3px]" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Role</Label>
+                  <Input required value={editForm.role} onChange={(e) => setEditForm(f => ({ ...f, role: e.target.value }))} className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Company</Label>
+                  <Input required value={editForm.company} onChange={(e) => setEditForm(f => ({ ...f, company: e.target.value }))} className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Job URL <span className="normal-case font-medium">(optional)</span></Label>
+                <Input value={editForm.url} onChange={(e) => setEditForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Cover Letter Link <span className="normal-case font-medium">(Google Docs — optional)</span></Label>
+                <Input value={editForm.cover_letter_url} onChange={(e) => setEditForm(f => ({ ...f, cover_letter_url: e.target.value }))} placeholder="https://docs.google.com/document/d/..." className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Deadline <span className="normal-case font-medium">(optional)</span></Label>
+                  <Input type="date" value={editForm.deadline} onChange={(e) => setEditForm(f => ({ ...f, deadline: e.target.value }))} className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Salary Range <span className="normal-case font-medium">(optional)</span></Label>
+                  <Input value={editForm.salary_range} onChange={(e) => setEditForm(f => ({ ...f, salary_range: e.target.value }))} placeholder="e.g. $80k–$100k" className="w-full rounded-none border-2 border-black bg-white px-3 py-1.5 text-xs text-black focus-visible:ring-0 focus-visible:ring-offset-0" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-500">Notes <span className="normal-case font-medium">(optional)</span></Label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={3}
+                  placeholder="Interview notes, recruiter contact, follow-up tasks…"
+                  className="w-full rounded-none border-2 border-black bg-white px-3 py-2 text-xs text-black resize-none focus:outline-none focus:ring-0 placeholder:text-neutral-400"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-1 border-t-2 border-black">
+                <button
+                  type="button"
+                  onClick={() => setEditingApp(null)}
+                  className="h-10 px-5 rounded-none border-2 border-black bg-white text-xs font-mono font-black uppercase text-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-neutral-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <Button type="submit" disabled={editSaving} className="h-10 px-6 rounded-none border-2 border-black bg-primary text-primary-foreground text-xs font-mono font-black uppercase shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-primary/90">
+                  {editSaving ? "Saving…" : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* popup inspector modal */}
       {selectedDayInspector !== null && (
