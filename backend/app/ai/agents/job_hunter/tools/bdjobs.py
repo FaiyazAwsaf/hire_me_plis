@@ -68,7 +68,7 @@ async def search_bdjobs(role: str, location: str, date_from: str | None = None) 
             salary_range=_salary(item),
             deadline=_parse_deadline(item.get("Deadline")),
             url=_JOB_PAGE_URL.format(job_id=item.get("JobId", "")),
-            description=_strip_html(item.get("JobDescription") or "")[:3000],
+            description=_build_description(item),
             source_platform="bdjobs",
         )))
 
@@ -145,6 +145,23 @@ def _parse_deadline(raw: str | None) -> str | None:
         except (ValueError, TypeError):
             continue
     return None
+
+
+def _build_description(item: dict) -> str:
+    """Combine multiple BDJobs API fields into a rich description for the scorer.
+
+    BDJobs splits the JD across several fields. Joining them prevents the
+    < 50-char fallback that would otherwise trigger noisy HTML-page scraping.
+    """
+    fields = [
+        item.get("JobDescription") or "",
+        item.get("JobSummary") or "",
+        item.get("JobResponsibilities") or "",
+        item.get("SkillRequirements") or "",
+        item.get("SpecialRequirements") or "",
+    ]
+    combined = " ".join(filter(None, fields))
+    return _strip_html(combined)[:3000]
 
 
 def _strip_html(text: str) -> str:
