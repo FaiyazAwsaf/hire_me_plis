@@ -8,6 +8,8 @@ An agentic career co-pilot. Uploads your CV once — every job search, fit score
 
 **Evaluation Suite:** [docs/evaluation-suite.md](docs/evaluation-suite.md)
 
+**API Documentation:** [docs/api_doc.md](docs/api_doc.md)
+
 ---
 
 ## Prerequisites

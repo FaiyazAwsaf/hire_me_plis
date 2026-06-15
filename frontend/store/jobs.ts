@@ -8,17 +8,19 @@ export interface JobCard {
   salary_range: string | null;
   deadline: string | null;
   url: string;
+  source_platform: string | null;
   fit_score: number;
   fit_reasoning: string;
+  missing_skills: string[];
 }
 
 interface JobsState {
   results: JobCard[];
-  source: "adzuna" | "jsearch" | "scraped" | null;
+  source: string | null;
   total: number;
   isSearching: boolean;
   query: string;
-  setResults: (results: JobCard[], source: JobsState["source"], total: number) => void;
+  setResults: (results: JobCard[], source: string | null, total: number) => void;
   setSearching: (v: boolean) => void;
   setQuery: (q: string) => void;
   clear: () => void;

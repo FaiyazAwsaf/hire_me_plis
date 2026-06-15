@@ -5,6 +5,12 @@ explicitly required or preferred in the job description below.
 JD TEXT:
 {jd_text}
 
+Rules:
+- Always write the full skill name, never abbreviations — "Machine Learning" not "ML", \
+"JavaScript" not "JS", "TypeScript" not "TS", "Natural Language Processing" not "NLP", \
+"Kubernetes" not "K8s", "TensorFlow" not "TF", "PyTorch" not "PT"
+- One skill per array entry — do not bundle multiple skills in one string
+
 Respond ONLY with a valid JSON array of skill strings. Example: ["Python", "FastAPI", "Docker"]
 No explanation, no markdown fences."""
 

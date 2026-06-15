@@ -14,22 +14,38 @@ from app.routers.tracker import router as tracker_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Deferred imports avoid circular import: arq → app.config at module load time
+    import logging
     from arq import create_pool
     from arq.connections import RedisSettings
     from app.config import settings
 
+    logger = logging.getLogger("startup")
+
     # arq_pool is stored on app.state so get_arq_pool() dependency can retrieve it per-request
-    app.state.arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
-    await ensure_collection()
+    try:
+        app.state.arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+        logger.info("Redis pool created")
+    except Exception as e:
+        logger.error(f"Redis connection failed: {e}")
+        app.state.arq_pool = None
+
+    try:
+        await ensure_collection()
+        logger.info("Qdrant collection ready")
+    except Exception as e:
+        logger.error(f"Qdrant connection failed: {e}")
+
     yield
-    await app.state.arq_pool.aclose()  # aclose() is the async variant of close()
+
+    if app.state.arq_pool:
+        await app.state.arq_pool.aclose()
 
 
 app = FastAPI(title="Hire Me Plis API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "https://hire-me-plis.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

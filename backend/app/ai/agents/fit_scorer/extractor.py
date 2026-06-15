@@ -1,8 +1,11 @@
 import json
+import logging
 
 from app.ai.llm.generate import generate
 from app.ai.llm.prompts.scoring import skill_extraction_prompt, years_extraction_prompt
 from app.core.llm_client import LIGHT_MODEL
+
+logger = logging.getLogger(__name__)
 
 
 async def extract_jd_skills(jd_text: str) -> list[str]:
@@ -15,7 +18,8 @@ async def extract_jd_skills(jd_text: str) -> list[str]:
     try:
         raw = await generate(prompt=prompt, model=LIGHT_MODEL)
         return json.loads(_strip_fences(raw))
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"extract_jd_skills failed ({type(exc).__name__}: {exc})")
         return []
 
 
@@ -30,7 +34,8 @@ async def extract_years_required(jd_text: str) -> int | None:
         raw = await generate(prompt=prompt, model=LIGHT_MODEL)
         data = json.loads(_strip_fences(raw))
         return data.get("years_required")  # None if key missing or explicitly null
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"extract_years_required failed ({type(exc).__name__}: {exc})")
         return None
 
 
