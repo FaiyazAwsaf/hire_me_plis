@@ -11,6 +11,7 @@ from app.ai.rag.context import build_context
 from app.ai.rag.memory import redis_append, redis_load_history
 from app.ai.rag.retriever import retrieve
 from app.core.llm_client import HEAVY_MODEL
+from app.models.application import Application
 from app.models.chat_message import ChatMessage
 
 
@@ -81,17 +82,36 @@ async def load_history(
     ]
 
 
+def _build_job_context(app: Application) -> str:
+    """Format a saved application into a structured block for the system prompt."""
+    return (
+        f"--- JOB CONTEXT ---\n"
+        f"The user is asking questions about this specific saved job application:\n"
+        f"Role: {app.role}\n"
+        f"Company: {app.company}\n"
+        f"Status: {app.status.value}\n"
+        f"Job URL: {app.url or 'not provided'}\n"
+        f"Cover Letter: {app.cover_letter_url or 'not provided'}\n"
+        f"Job Description / Notes:\n"
+        f"{app.jd_text or app.notes or 'no description stored'}\n"
+        f"--- END JOB CONTEXT ---"
+    )
+
+
 async def handle_chat(
     user_id: str,
     session_id: str,
     user_message: str,
     db: AsyncSession,
+    job_id: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """Full RAG chat pipeline — yields tokens as they stream from the LLM.
 
     Step order is intentional: user message saved before load_history so the
     current turn is included in context. Assistant message saved after the last
     yield so the complete response is written atomically.
+    When job_id is provided, the saved application is fetched and injected into
+    the system prompt so the model can answer role-specific questions.
     """
     # 1. Persist user message — Postgres + Redis
     await save_message(session_id, user_id, "user", user_message, db)
@@ -103,17 +123,30 @@ async def handle_chat(
     results = await retrieve(user_message, user_id, top_k=5)
     context = build_context(results)
 
-    # 4. Assemble the full messages array: system prompt + conversation history
-    system_prompt = rag_system_prompt(context)
+    # 4. Optionally fetch the targeted job application for job-aware responses
+    job_context: str | None = None
+    if job_id:
+        result = await db.execute(
+            select(Application).where(
+                Application.id == uuid.UUID(job_id),
+                Application.user_id == uuid.UUID(user_id),
+            )
+        )
+        app = result.scalar_one_or_none()
+        if app:
+            job_context = _build_job_context(app)
+
+    # 5. Assemble the full messages array: system prompt + conversation history
+    system_prompt = rag_system_prompt(context, job_context)
     messages: list[dict] = [{"role": "system", "content": system_prompt}]
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # 5. Stream tokens, accumulate the full response for saving
+    # 6. Stream tokens, accumulate the full response for saving
     assembled: list[str] = []
     async for token in stream_chat(messages, HEAVY_MODEL):
         assembled.append(token)
         yield token
 
-    # 6. Persist the complete assistant response — runs after the last yield
+    # 7. Persist the complete assistant response — runs after the last yield
     await save_message(session_id, user_id, "assistant", "".join(assembled), db)

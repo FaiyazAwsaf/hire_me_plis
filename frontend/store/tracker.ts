@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type ApplicationStatus = "applied" | "interviewing" | "offer" | "rejected";
+export type ApplicationStatus = "shortlist" | "applied" | "interviewing" | "offer" | "rejected";
 
 export interface Application {
   id: string;
@@ -11,6 +11,8 @@ export interface Application {
   notes: string | null;
   deadline: string | null;
   salary_range: string | null;
+  cover_letter_url: string | null;
+  jd_text: string | null;
   applied_at: string;
 }
 

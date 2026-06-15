@@ -17,15 +17,20 @@ import {
   Copy,
   Check,
   Loader2,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { useJobsStore } from "@/store/jobs";
+import { useTrackerStore, type Application } from "@/store/tracker";
 import api from "@/lib/api";
 
 function JobDetailContent() {
   const { id } = useParams();
   const router = useRouter();
   const job = useJobsStore((s) => s.results.find((j) => j.id === id));
+  const { addApplication } = useTrackerStore();
 
+  const [saved, setSaved] = useState(false);
   const [editableLetter, setEditableLetter] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,6 +65,27 @@ function JobDetailContent() {
       : job.fit_score >= 50
         ? "bg-amber-50 text-amber-900"
         : "bg-rose-50 text-rose-900";
+
+  async function handleSave() {
+    if (saved || !job) return;
+    try {
+      const res = await api.post<Application>("/applications", {
+        role: job.role,
+        company: job.company,
+        url: job.url,
+        status: "shortlist",
+        jd_text: job.fit_reasoning,
+        deadline: job.deadline ?? null,
+        salary_range: job.salary_range ?? null,
+        notes: null,
+        cover_letter_url: null,
+      });
+      addApplication(res.data);
+      setSaved(true);
+    } catch (err) {
+      console.error("Failed to save job to board:", err);
+    }
+  }
 
   async function handleGenerateCoverLetter() {
     setIsGenerating(true);
@@ -358,18 +384,43 @@ function JobDetailContent() {
                 </span>
               </div>
             )}
-            <a
-              href={job.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "w-full sm:w-auto h-12 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]",
-              )}
-            >
-              <span>Apply Now</span>
-              <ArrowUpRight className="h-4 w-4 shrink-0 stroke-[2.5px]" />
-            </a>
+            <div className="flex w-full sm:w-auto items-center gap-3">
+              <Button
+                onClick={handleSave}
+                disabled={saved}
+                variant="outline"
+                className={cn(
+                  "flex-1 sm:flex-none h-12 rounded-none border-2 px-6 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[2px_2px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5",
+                  saved
+                    ? "border-emerald-600 bg-emerald-50 text-emerald-700 cursor-default"
+                    : "border-black bg-white text-black hover:bg-neutral-50",
+                )}
+              >
+                {saved ? (
+                  <>
+                    <BookmarkCheck className="h-4 w-4 shrink-0" />
+                    <span>Saved to Board</span>
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="h-4 w-4 shrink-0" />
+                    <span>Save to Board</span>
+                  </>
+                )}
+              </Button>
+              <a
+                href={job.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "flex-1 sm:flex-none h-12 rounded-none border-2 border-primary bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none shadow-[4px_4px_0px_rgba(0,0,0,1)]",
+                )}
+              >
+                <span>Apply Now</span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 stroke-[2.5px]" />
+              </a>
+            </div>
           </div>
         </div>
       </div>

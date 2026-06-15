@@ -23,19 +23,21 @@ User uploads PDF / DOCX
   Frontend polls GET /cv/status               │   ARQ Worker        │
          │                                    │                     │
          │                                    │  1. Download from R2 │
-         │                                    │  2. Unstructured.io  │
-         │                                    │     → raw text blocks│
+         │                                    │  2. pypdf / python-  │
+         │                                    │     docx → raw text  │
          │                                    │  3. Gemini Flash     │
          │                                    │     → classify into: │
          │                                    │     experience /     │
          │                                    │     education /      │
-         │                                    │     skills /         │
-         │                                    │     projects /       │
-         │                                    │     certifications   │
+         │                                    │     skills / projects│
+         │                                    │     certifications / │
+         │                                    │     personal / summary│
          │                                    │  4. Gemini Flash     │
-         │                                    │     → extract full   │
-         │                                    │     structured JSON  │
-         │                                    │     (profile_dict)   │
+         │                                    │     extract_profile()│
+         │                                    │     → structured JSON│
+         │                                    │     + extract_cv_meta│
+         │                                    │     (role_title,     │
+         │                                    │      experience_years)│
          │                                    │  5. Upsert profile   │
          │                                    │     ──────────────►  │─── cv_profiles ──► PostgreSQL
          │                                    │  6. Chunk sections   │    (JSONB, source of truth
@@ -46,8 +48,10 @@ User uploads PDF / DOCX
          │                                    │     dim vectors      │
          │                                    │  8. Qdrant upsert ── │─── cv_chunks ──►  Qdrant
          │                                    │     (user_id filter  │    payload: { user_id,
-         │                                    │      on every point) │    section, text }
-         │                                    │  9. status → "done"  │
+         │                                    │      on every point) │    cv_version_id, section,
+         │                                    │                      │    chunk_index, text,
+         │                                    │                      │    role_title,
+         │                                    │  9. status → "done"  │    experience_years }
          │                                    └─────────────────────┘
          │                                                 │
          └─────────── status: "done" ◄───────────── PostgreSQL
@@ -88,28 +92,43 @@ User: "Find ML internships in Dhaka this month"
   │         └──────────────┬──────────────────────────────┘│
   │                        │ merged RawJob list             │
   │                        ▼                               │
-  │  Node 3 — score_node                                   │
-  │    For each job — POST /jobs/score (internal):          │
+  │  Node 3 — score_node  (asyncio.gather — all jobs parallel)│
+  │    scorer.score(jd, user_id)  [same as POST /jobs/score]:│
   │                                                         │
-  │    Gemini Flash → extract JD skills                     │
-  │    Recall(jd_skills ∩ cv_skills / |jd_skills|) → skill_match [30%] │
+  │    Gemini Flash → extract JD skills (canonical forms)   │
+  │    skill_match [30%] = recall(jd_skills ∩ cv_words / |jd_skills|)│
+  │        cv_words = skills + experience + projects scan    │
+  │        _CV_ABBREV expands CV abbrevs (ml→machine learning)│
+  │        +10 calibration bias, capped 100                  │
   │                                                         │
   │    embed(JD text) → OpenAI text-embedding-3-small       │
   │    cosine vs top-5 cv_chunks (Qdrant, user_id filter)   │
-  │                        → semantic_match          [50%]  │
+  │        +10 calibration bias → semantic_match     [50%]  │
   │                                                         │
-  │    parse(years_required) vs cv date ranges              │
-  │                        → experience_match        [20%]  │
+  │    parse(years_required) vs cv years                    │
+  │        (neutral 80 if unstated) → experience_match [20%]│
   │                                                         │
+  │    missing_skills = JD skills absent from the whole CV  │
   │    weighted_sum → score (0–100)                         │
   │                                                         │
   │    Claude Sonnet → 2-3 sentence fit_reasoning           │
+  │        (computed-summary fallback if LLM call fails)    │
+  │                                                         │
+  │  BDJobs: JD built from 5 API fields; never scrapes the  │
+  │  Angular SPA URL (meta-keyword pollution) — title       │
+  │  fallback instead.                                      │
   └─────────────────────────────────────────────────────────┘
          │
          ▼
   Response: structured job cards
   { role, company, location, salary_range, deadline, url,
     source_platform, fit_score, fit_reasoning, missing_skills }
+         │
+         ▼
+  "Save to board" ──► POST /applications
+                      { ..., status: "shortlist", jd_text: fit_reasoning }
+                      → card in the Shortlist column on /tracker
+                      → jd_text becomes context for job-aware chat
 ```
 
 ---
@@ -151,8 +170,15 @@ User sends message via WebSocket
          │         └──────────────────────────────────────────────────────────┘
          │    build_context(results) → "[section]\ntext\n\n[section]\ntext"
          │
+         ├─── Job-aware context  (optional — payload carries job_id)
+         │    SELECT application WHERE id=job_id AND user_id  (ownership-scoped)
+         │    _build_job_context(app) → role / company / status / url /
+         │                              cover_letter / jd_text block
+         │    → passed as 2nd arg: rag_system_prompt(context, job_context)
+         │    → model cross-references the selected Kanban card vs the CV
+         │
          ├─── Assemble LLM messages
-         │    [ { role: "system",  content: rag_system_prompt(context) },
+         │    [ { role: "system",  content: rag_system_prompt(context, job_context?) },
          │      { role: "user",    content: history[0] },
          │      { role: "assistant", content: history[1] },
          │      ...
@@ -203,14 +229,43 @@ User sends message via WebSocket
 
 ---
 
-## 5. Data Stores at a Glance
+## 5. Cover Letter Generation (RAG + LLM)
+
+```
+User clicks "Generate Cover Letter" (job card / detail page)
+         │
+         ▼
+  POST /jobs/cover-letter  { role, company, jd_summary }   (jd_summary = fit_reasoning)
+         │
+         ├─ _require_cv() guard ──────────► 404 if no status=done CV
+         ├─ retrieve(role+company+jd_summary, user_id, top_k=6) ──► Qdrant (user_id filter)
+         │       build_context(chunks) → grounding text
+         ├─ Claude Sonnet → cover_letter_prompt(role, company, jd_summary, cv_context)
+         └─ { cover_letter }  — 3 paragraphs, grounded in real CV, no placeholders
+
+User refines ("more formal", "shorten paragraph 2")
+         │
+         ▼
+  POST /jobs/cover-letter/refine  { cover_letter, instruction }
+         │
+         ├─ _require_cv() guard
+         ├─ Claude Sonnet → refine_cover_letter_prompt(cover_letter, instruction)
+         │       NO RAG re-retrieval — letter already carries CV context; edit is stylistic
+         └─ { cover_letter }  — revised, factual claims preserved
+```
+
+---
+
+## 6. Data Stores at a Glance
 
 ```
 ┌───────────────────────────────────────────────────────────┐
 │  PostgreSQL                                               │
-│  users, cv_versions, cv_profiles (JSONB), applications,   │
-│  goals, calendar_events, chat_messages, nudges,           │
-│  refresh_tokens                                           │
+│  users, cv_versions, cv_profiles (JSONB), applications    │
+│  (shortlist|applied|interviewing|offer|rejected,          │
+│   + cover_letter_url, jd_text), goals, calendar_events,   │
+│  chat_messages, nudges                                    │
+│  (no refresh_tokens table — /auth/refresh is stateless)   │
 └───────────────────────────────────────────────────────────┘
 
 ┌───────────────────────────────────────────────────────────┐
@@ -226,20 +281,20 @@ User sends message via WebSocket
 │  Redis                                                    │
 │  session:{id}:messages  — chat history (TTL 2hr, cap 20)  │
 │  ARQ job queues         — managed by ARQ internally       │
-│  cv_export:{user_id}    — signed R2 URL (TTL 1hr)         │
-│  nudge_lock:{user_id}   — dedup guard (TTL 24hr)          │
+│  nudge_lock:{user_id}   — dedup guard (TTL 24hr, SET NX)  │
 └───────────────────────────────────────────────────────────┘
 
 ┌───────────────────────────────────────────────────────────┐
 │  Cloudflare R2                                            │
-│  uploads/{user_id}/{cv_version_id}.pdf  — raw CV files    │
-│  exports/{user_id}/{timestamp}.pdf      — exported PDFs   │
+│  raw CV uploads — re-served on /cv/export via a 1hr       │
+│  presigned GET URL (no server-side PDF rendering;         │
+│  templated export is client-side in the resume-builder)   │
 └───────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 6. Scale Analysis — 10,000 Users
+## 7. Scale Analysis — 10,000 Users
 
 ### Assumptions
 
@@ -308,11 +363,11 @@ The Claude Sonnet fit score explanation is the dominant cost — 10 calls per se
 
 #### 1. Fit Scoring Latency (highest impact)
 
-Each job search fires up to 10 Claude Sonnet calls for explanations. Currently these run after scoring, but if they are sequential, a single search takes 10–15 seconds. **Fix:** `asyncio.gather()` across all score+explain calls in `score_node` — all 10 run in parallel, wall time drops to ~1.5s.
+Each job search fires up to ~50 Claude Sonnet calls for explanations (4 sources × up to 20 BDJobs / 10 each elsewhere). `score_node` already wraps all per-job scoring in `asyncio.gather()`, so explanations run concurrently and wall time is the slowest single score (~1.5–3s) rather than the sum. **Next optimisation:** cap fan-out with an `asyncio.Semaphore` and cache explanations by JD hash so a busy proxy tier isn't saturated at peak.
 
 #### 2. CV Pipeline Worker Throughput
 
-Unstructured.io PDF parsing is CPU-bound and takes 15–30 seconds per CV. A single ARQ worker processes one CV at a time. If 100 users upload simultaneously (realistic during a launch spike), the queue backs up. **Fix:** Scale ARQ workers horizontally on Railway — each worker is stateless and pulls from the same Redis queue. Three workers handle 3× throughput with no code changes.
+Text extraction now uses pypdf / python-docx (pure-Python, ~1–2s per CV — far lighter than the previous Unstructured.io path), so the per-CV cost is dominated by the two Gemini Flash calls (classify + profile extraction) and the embedding batch, roughly 3–6s end to end. A single ARQ worker still processes one CV at a time, so a launch-spike upload burst backs the queue up. **Fix:** Scale ARQ workers horizontally on Railway — each worker is stateless and pulls from the same Redis queue. Three workers handle 3× throughput with no code changes.
 
 #### 3. PostgreSQL Connection Pool Exhaustion
 
