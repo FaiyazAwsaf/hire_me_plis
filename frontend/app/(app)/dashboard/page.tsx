@@ -36,6 +36,7 @@ export default function DashboardPage() {
 
   // ── CV STATE INTEGRATION ──
   const [hasCv, setHasCv] = useState<boolean | null>(null);
+  const [skillsCount, setSkillsCount] = useState<number>(0);
 
   const today = new Date();
   const year = today.getFullYear();
@@ -80,6 +81,12 @@ export default function DashboardPage() {
       .get<{ goals: Goal[] }>("/goals")
       .then((r) => setCalGoals(r.data.goals))
       .catch(console.error);
+
+    // Fetch CV profile to get skills count
+    api
+      .get<{ skills: string[] }>("/cv/profile")
+      .then((r) => setSkillsCount(r.data.skills?.length ?? 0))
+      .catch(() => setSkillsCount(0));
   }, [setStats, setNudges]);
 
   async function handleMarkRead(nudgeId: string) {
@@ -130,48 +137,54 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* ── TOP LEFT: METRIC CARDS ── */}
             <div className="grid grid-cols-2 gap-3 rounded-none border-2 border-black bg-neutral-50 p-3 shadow-sm">
-              <MiniStatCard
-                title="Applications"
-                value={stats?.applications?.total ?? "—"}
-                badge="This Week"
-                icon={<Send className="h-3.5 w-3.5 text-black" />}
-                description="Target: 10 sent"
-                bgClass="bg-[#E3F2FD] hover:bg-[#BBDEFB]"
-              />
-              <MiniStatCard
-                title="Skills Added"
-                value={
-                  stats?.goals?.completed != null
-                    ? `+${stats.goals.completed}`
-                    : "—"
-                }
-                badge="Verified"
-                icon={<Cpu className="h-3.5 w-3.5 text-black" />}
-                description="Parsed profile updates"
-                bgClass="bg-[#E8F5E9] hover:bg-[#C8E6C9]"
-              />
-              <MiniStatCard
-                title="Roadmap"
-                value={
-                  stats?.goals?.completion_pct != null
-                    ? `${stats.goals.completion_pct}%`
-                    : "—"
-                }
-                badge="Progress"
-                icon={<Milestone className="h-3.5 w-3.5 text-black" />}
-                description="Milestone 3 target"
-                bgClass="bg-[#F3E5F5] hover:bg-[#E1BEE7]"
-              />
-              <MiniStatCard
-                title="Streak"
-                value={
-                  stats?.streak_days != null ? `${stats.streak_days} Days` : "—"
-                }
-                badge="Active"
-                icon={<Flame className="h-3.5 w-3.5 text-black" />}
-                description="Actions logged daily"
-                bgClass="bg-[#FFF3E0] hover:bg-[#FFE0B2]"
-              />
+              <Link href="/tracker" className="group">
+                <MiniStatCard
+                  title="Applications"
+                  value={stats?.applications?.total ?? "—"}
+                  badge="This Week"
+                  icon={<Send className="h-3.5 w-3.5 text-black" />}
+                  description="Target: 10 sent"
+                  bgClass="bg-[#E3F2FD] hover:bg-[#BBDEFB]"
+                />
+              </Link>
+              <Link href="/cv#profile" className="group">
+                <MiniStatCard
+                  title="Skills Added"
+                  value={skillsCount > 0 ? skillsCount : "—"}
+                  badge="Verified"
+                  icon={<Cpu className="h-3.5 w-3.5 text-black" />}
+                  description="Parsed from profile"
+                  bgClass="bg-[#E8F5E9] hover:bg-[#C8E6C9]"
+                />
+              </Link>
+              <Link href="/tracker#goals" className="group">
+                <MiniStatCard
+                  title="Roadmap"
+                  value={
+                    stats?.goals?.completion_pct != null
+                      ? `${stats.goals.completion_pct}%`
+                      : "—"
+                  }
+                  badge="Progress"
+                  icon={<Milestone className="h-3.5 w-3.5 text-black" />}
+                  description="Milestone 3 target"
+                  bgClass="bg-[#F3E5F5] hover:bg-[#E1BEE7]"
+                />
+              </Link>
+              <Link href="/tracker#goals" className="group">
+                <MiniStatCard
+                  title="Streak"
+                  value={
+                    stats?.streak_days != null
+                      ? `${stats.streak_days} Days`
+                      : "—"
+                  }
+                  badge="Active"
+                  icon={<Flame className="h-3.5 w-3.5 text-black" />}
+                  description="Actions logged daily"
+                  bgClass="bg-[#FFF3E0] hover:bg-[#FFE0B2]"
+                />
+              </Link>
             </div>
 
             {/* ── TOP RIGHT: AI NUDGE SYSTEM ── */}

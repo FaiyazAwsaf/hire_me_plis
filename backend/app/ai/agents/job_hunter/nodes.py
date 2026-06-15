@@ -123,8 +123,16 @@ async def score_node(state: JobHunterState) -> dict:
     async def score_one(job: dict) -> dict | None:
         desc = (job.get("description") or "").strip()
         if len(desc) < 50:
-            logger.info(f"'{job.get('role')}' at '{job.get('company')}': short description, fetching from URL")
-            desc = await _fetch_description(job.get("url", ""), job)
+            # BDJobs pages are JS SPAs — httpx gets the shell HTML, not the JD content.
+            # Meta tags on those pages reflect the company's full tech stack, not the
+            # specific job, which causes false positives in skill extraction (e.g. Laravel
+            # appearing for a React internship). Use the title fallback directly instead.
+            if job.get("source_platform") == "bdjobs":
+                desc = f"{job.get('role', '')} position at {job.get('company', '')} in {job.get('location', '')}".strip()
+                logger.info(f"'{job.get('role')}' at '{job.get('company')}': short BDJobs description, using title fallback")
+            else:
+                logger.info(f"'{job.get('role')}' at '{job.get('company')}': short description, fetching from URL")
+                desc = await _fetch_description(job.get("url", ""), job)
         try:
             result = await scorer.score(desc, user_id)
             return {
